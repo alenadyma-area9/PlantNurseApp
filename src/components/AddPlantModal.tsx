@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useEnterKey, useEscapeKey } from '../hooks/useKeyboardShortcut'
 import {
 	DialogRoot,
 	DialogContent,
@@ -72,6 +73,16 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	}
 
 	const selectedSpecies = PLANT_DATABASE.find((p) => p.id === selectedSpeciesId)
+
+	// Keyboard shortcuts
+	const handleEnter = useCallback(() => {
+		if (step === 'details' && customName.trim()) {
+			handleAddPlant()
+		}
+	}, [step, customName])
+
+	useEnterKey(handleEnter, isOpen)
+	useEscapeKey(handleClose, isOpen)
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">

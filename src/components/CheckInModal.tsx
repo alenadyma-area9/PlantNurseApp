@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeKey } from '../hooks/useKeyboardShortcut'
 import {
 	DialogRoot,
 	DialogContent,
@@ -120,6 +121,9 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 		{ value: 'repotted' as CheckInAction, label: 'Repotted', emoji: '🪴' },
 		{ value: 'nothing' as CheckInAction, label: 'Just observing', emoji: '👀' },
 	]
+
+	// Keyboard shortcuts (Escape only - Enter would conflict with textarea)
+	useEscapeKey(handleClose, isOpen)
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">

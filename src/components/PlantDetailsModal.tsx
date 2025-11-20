@@ -19,8 +19,10 @@ import {
 } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { getPlantById } from '../data/plantDatabase'
 import { EditPlantModal } from './EditPlantModal'
+import { formatTemperatureRange, formatDistance } from '../utils/unitConversion'
 
 interface PlantDetailsModalProps {
 	plantId: string
@@ -34,6 +36,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
 	const getDaysSinceLastCheckIn = usePlantStore((state) => state.getDaysSinceLastCheckIn)
 	const getRoom = useRoomStore((state) => state.getRoom)
+	const temperatureUnit = useSettingsStore((state) => state.temperatureUnit)
+	const distanceUnit = useSettingsStore((state) => state.distanceUnit)
 
 	const [isEditOpen, setIsEditOpen] = useState(false)
 	const [activeTab, setActiveTab] = useState<'care' | 'history' | 'tips'>('care')
@@ -174,10 +178,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 													</Text>
 												</Box>
 												<Box>
-													<Text color="gray.600" fontSize="xs">How to check:</Text>
-													<Text fontWeight="medium">
-														Stick finger in soil {species.watering.soilCheckDepth}
-													</Text>
+												  <Text color="gray.600" fontSize="xs">How to check:</Text>
+												  <Text fontWeight="medium">
+													Stick finger in soil {formatDistance(species.watering.soilCheckDepth, distanceUnit)}
+												  </Text>
 												</Box>
 												<Box>
 													<Text color="gray.600" fontSize="xs">Soil preference:</Text>
@@ -221,13 +225,13 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 											</Text>
 											<VStack align="stretch" gap={3} fontSize="sm">
 												<Box>
-													<Text color="gray.600" fontSize="xs">Temperature range:</Text>
-													<Text fontWeight="medium">
-														{species.temperature.min}°F - {species.temperature.max}°F
-													</Text>
-													<Text fontSize="xs" color="gray.500">
-														Ideal: {species.temperature.ideal}
-													</Text>
+												  <Text color="gray.600" fontSize="xs">Temperature range:</Text>
+												  <Text fontWeight="medium">
+													{formatTemperatureRange(species.temperature.min, species.temperature.max, temperatureUnit)}
+												  </Text>
+												  <Text fontSize="xs" color="gray.500">
+													Ideal: {species.temperature.ideal}
+												  </Text>
 												</Box>
 												<Box>
 													<Text color="gray.600" fontSize="xs">Humidity preference:</Text>

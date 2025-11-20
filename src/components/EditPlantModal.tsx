@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useEnterKey, useEscapeKey } from '../hooks/useKeyboardShortcut'
 import {
 	DialogRoot,
 	DialogContent,
@@ -50,6 +51,16 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	}, [plant])
 
 	if (!plant) return null
+
+	// Keyboard shortcuts
+	const handleEnter = useCallback(() => {
+		if (customName.trim()) {
+			handleSave()
+		}
+	}, [customName])
+
+	useEnterKey(handleEnter, isOpen)
+	useEscapeKey(onClose, isOpen)
 
 	const handleSave = () => {
 		updatePlant(plant.id, {
