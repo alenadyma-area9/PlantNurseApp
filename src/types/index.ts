@@ -2,6 +2,14 @@
 
 export type CareLevel = 'beginner' | 'intermediate' | 'advanced'
 
+export type PlantSize = 'small' | 'medium' | 'large'
+
+export type PlantCondition = 'healthy' | 'needs-attention' | 'struggling' | 'just-added'
+
+export type WindowDirection = 'north' | 'south' | 'east' | 'west' | 'none'
+
+export type RoomTemperature = 'cold' | 'cool' | 'moderate' | 'warm' | 'hot'
+
 export type LightLevel = 'low' | 'medium' | 'bright-indirect' | 'direct'
 
 export type SoilPreference = 'dry' | 'slightly-moist' | 'moist' | 'wet'
@@ -86,14 +94,32 @@ export interface PlantSpecies {
 	quickTips: string[]
 }
 
+// Room/Location where plants are kept
+export interface Room {
+	id: string
+	name: string // "Living Room", "Bedroom", "Kitchen"
+	lightLevel: LightLevel // actual light in this room
+	windowDirection?: WindowDirection
+	temperature: RoomTemperature
+	humidity?: 'low' | 'medium' | 'high'
+	notes?: string
+}
+
 // User's plant instance
 export interface UserPlant {
 	id: string
 	speciesId: string // reference to PlantSpecies
 	customName: string // user's nickname for the plant
 	dateAdded: string // ISO date
-	location?: string // "living room", "bedroom window", etc.
-	potSize?: string // "small", "medium", "large" or specific size
+
+	// Location & Environment
+	roomId: string // reference to Room
+
+	// Current Status
+	size: PlantSize
+	condition: PlantCondition
+
+	// Optional
 	notes?: string // user's personal notes
 	photoUrl?: string // optional user photo
 }
