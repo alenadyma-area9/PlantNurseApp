@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Text, VStack, Card, HStack, Badge, Button, Image as ChakraImage } from '@chakra-ui/react'
+import { Box, Text, VStack, Card, HStack, Badge, Button, Image as ChakraImage, Heading, SimpleGrid } from '@chakra-ui/react'
 import {
 	DndContext,
 	closestCenter,
@@ -23,6 +23,7 @@ import { getPlantById } from '../data/plantDatabase'
 import { CheckInModal } from './CheckInModal'
 import { PlantDetailsModal } from './PlantDetailsModal'
 import { formatTimeAgo } from '../utils/timeUtils'
+type ViewMode = 'all' | 'by-room' | 'by-health' | 'by-priority' | 'by-next-check' | 'by-care-level'
 
 interface SortablePlantCardProps {
 	plant: any
@@ -34,6 +35,7 @@ interface SortablePlantCardProps {
 	nextCheckDate: Date | null
 	onCheckIn: () => void
 	onDetails: () => void
+	isDragDisabled?: boolean
 }
 
 function SortablePlantCard({
@@ -46,9 +48,11 @@ function SortablePlantCard({
 	nextCheckDate,
 	onCheckIn,
 	onDetails,
+	isDragDisabled = false,
 }: SortablePlantCardProps) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: plant.id,
+		disabled: isDragDisabled,
 	})
 
 	const style = {
@@ -84,18 +88,20 @@ function SortablePlantCard({
 			<Card.Body p={{ base: 3, md: 4 }}>
 				<HStack gap={3} align="start">
 					{/* Drag Handle */}
-					<Box
-						{...attributes}
-						{...listeners}
-						cursor="grab"
-						_active={{ cursor: 'grabbing' }}
-						color="gray.400"
-						fontSize="xl"
-						userSelect="none"
-						pt={2}
-					>
-						⋮⋮
-					</Box>
+					{!isDragDisabled && (
+						<Box
+							{...attributes}
+							{...listeners}
+							cursor="grab"
+							_active={{ cursor: 'grabbing' }}
+							color="gray.400"
+							fontSize="xl"
+							userSelect="none"
+							pt={2}
+						>
+							⋮⋮
+						</Box>
+					)}
 
 					{/* Plant Photo */}
 					{plant.photoUrl && (
@@ -206,9 +212,11 @@ export function PlantList() {
 	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
 	const reorderPlants = usePlantStore((state) => state.reorderPlants)
 	const getRoom = useRoomStore((state) => state.getRoom)
+	const rooms = useRoomStore((state) => state.rooms)
 
 	const [checkInPlantId, setCheckInPlantId] = useState<string | null>(null)
 	const [detailsPlantId, setDetailsPlantId] = useState<string | null>(null)
+	const [viewMode, setViewMode] = useState<ViewMode>('all')
 
 	const sensors = useSensors(
 		useSensor(PointerSensor),
@@ -254,10 +262,8 @@ export function PlantList() {
 
 		let baseDate: Date
 		if (checkIns.length > 0) {
-			// Use last check-in date
 			baseDate = new Date(checkIns[0].date)
 		} else {
-			// Use date added
 			baseDate = new Date(plant.dateAdded)
 		}
 
@@ -267,39 +273,228 @@ export function PlantList() {
 		return nextDate
 	}
 
+	// Prepare plant data with metadata
+	const plantsWithData = plants.map((plant) => {
+		const species = getPlantById(plant.speciesId)
+		if (!species) return null
+
+		const status = getPlantStatus(plant.id, species.watering.checkFrequency)
+		const checkIns = getPlantCheckIns(plant.id)
+		const room = getRoom(plant.roomId)
+		const hasCheckIns = checkIns.length > 0
+		const nextCheckDate = getNextCheckDate(plant.id, species.watering.checkFrequency)
+
+		return {
+			plant,
+			species,
+			room,
+			status,
+			checkIns,
+			hasCheckIns,
+			nextCheckDate,
+		}
+	}).filter((item): item is NonNullable<typeof item> => item !== null)
+
+	// Apply view-specific sorting/grouping
+	let organizedPlants: Array<{
+		title?: string
+		plants: typeof plantsWithData
+	}> = []
+
+	switch (viewMode) {
+		case 'all':
+			organizedPlants = [{ plants: plantsWithData }]
+			break
+
+		case 'by-room':
+			// Group by room
+			const roomGroups = new Map<string, typeof plantsWithData>()
+			rooms.forEach(room => {
+				roomGroups.set(room.id, [])
+			})
+			plantsWithData.forEach(item => {
+				const group = roomGroups.get(item.plant.roomId)
+				if (group) group.push(item)
+			})
+			organizedPlants = Array.from(roomGroups.entries()).map(([roomId, plants]) => ({
+				title: getRoom(roomId)?.name || 'Unknown Room',
+				plants,
+			})).filter(group => group.plants.length > 0)
+			break
+
+		case 'by-health':
+			// Sort by health condition (worse to better)
+			const healthOrder = { 'struggling': 0, 'needs-attention': 1, 'just-added': 2, 'healthy': 3 }
+			const sortedByHealth = [...plantsWithData].sort((a, b) => {
+				return healthOrder[a.plant.condition as keyof typeof healthOrder] -
+				       healthOrder[b.plant.condition as keyof typeof healthOrder]
+			})
+			organizedPlants = [{ title: 'By Health (Worse → Better)', plants: sortedByHealth }]
+			break
+
+		case 'by-priority':
+			// Sort by check-in priority
+			const priorityOrder = { 'needs-attention': 0, 'may-have-issue': 1, 'check-soon': 2, 'recently-checked': 3 }
+			const sortedByPriority = [...plantsWithData].sort((a, b) => {
+				return priorityOrder[a.status as keyof typeof priorityOrder] -
+				       priorityOrder[b.status as keyof typeof priorityOrder]
+			})
+			organizedPlants = [{ title: 'By Check Priority', plants: sortedByPriority }]
+			break
+
+		case 'by-next-check':
+			// Sort by next check date (soonest first)
+			const sortedByNextCheck = [...plantsWithData].sort((a, b) => {
+				if (!a.nextCheckDate) return 1
+				if (!b.nextCheckDate) return -1
+				return a.nextCheckDate.getTime() - b.nextCheckDate.getTime()
+			})
+			organizedPlants = [{ title: 'By Next Check Date', plants: sortedByNextCheck }]
+			break
+
+		case 'by-care-level':
+			// Group by care level
+			const careLevelGroups: Record<string, typeof plantsWithData> = {
+				beginner: [],
+				intermediate: [],
+				advanced: [],
+			}
+			plantsWithData.forEach(item => {
+				careLevelGroups[item.species.careLevel].push(item)
+			})
+			organizedPlants = Object.entries(careLevelGroups)
+				.filter(([_, plants]) => plants.length > 0)
+				.map(([level, plants]) => ({
+					title: `${level.charAt(0).toUpperCase() + level.slice(1)} Plants`,
+					plants,
+				}))
+			break
+	}
+
+	const isDragEnabled = viewMode === 'all'
+
 	return (
 		<>
-			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<SortableContext items={plants.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-					<VStack gap={4} align="stretch">
-						{plants.map((plant) => {
-							const species = getPlantById(plant.speciesId)
-							const room = getRoom(plant.roomId)
-							if (!species) return null
+			{/* View Selector */}
+			<Box mb={4}>
+				<VStack gap={3} align="stretch">
+					<SimpleGrid columns={{ base: 3, md: 6 }} gap={2}>
+						<Button
+							size="sm"
+							variant={viewMode === 'all' ? 'solid' : 'outline'}
+							colorScheme={viewMode === 'all' ? 'green' : 'gray'}
+							onClick={() => setViewMode('all')}
+						>
+							All
+						</Button>
+						<Button
+							size="sm"
+							variant={viewMode === 'by-room' ? 'solid' : 'outline'}
+							colorScheme={viewMode === 'by-room' ? 'green' : 'gray'}
+							onClick={() => setViewMode('by-room')}
+						>
+							Room
+						</Button>
+						<Button
+							size="sm"
+							variant={viewMode === 'by-health' ? 'solid' : 'outline'}
+							colorScheme={viewMode === 'by-health' ? 'green' : 'gray'}
+							onClick={() => setViewMode('by-health')}
+						>
+							Health
+						</Button>
+						<Button
+							size="sm"
+							variant={viewMode === 'by-priority' ? 'solid' : 'outline'}
+							colorScheme={viewMode === 'by-priority' ? 'green' : 'gray'}
+							onClick={() => setViewMode('by-priority')}
+						>
+							Priority
+						</Button>
+						<Button
+							size="sm"
+							variant={viewMode === 'by-next-check' ? 'solid' : 'outline'}
+							colorScheme={viewMode === 'by-next-check' ? 'green' : 'gray'}
+							onClick={() => setViewMode('by-next-check')}
+						>
+							Next Check
+						</Button>
+						<Button
+							size="sm"
+							variant={viewMode === 'by-care-level' ? 'solid' : 'outline'}
+							colorScheme={viewMode === 'by-care-level' ? 'green' : 'gray'}
+							onClick={() => setViewMode('by-care-level')}
+						>
+							Care Level
+						</Button>
+					</SimpleGrid>
 
-							const status = getPlantStatus(plant.id, species.watering.checkFrequency)
-							const checkIns = getPlantCheckIns(plant.id)
-							const hasCheckIns = checkIns.length > 0
-							const nextCheckDate = getNextCheckDate(plant.id, species.watering.checkFrequency)
+					{viewMode !== 'all' && (
+						<Text fontSize="xs" color="gray.500" textAlign="center">
+							💡 Drag and drop is only available in "All" view
+						</Text>
+					)}
+				</VStack>
+			</Box>
 
-							return (
-								<SortablePlantCard
-									key={plant.id}
-									plant={plant}
-									species={species}
-									room={room}
-									status={status}
-									checkIns={checkIns}
-									hasCheckIns={hasCheckIns}
-									nextCheckDate={nextCheckDate}
-									onCheckIn={() => setCheckInPlantId(plant.id)}
-									onDetails={() => setDetailsPlantId(plant.id)}
-								/>
-							)
-						})}
-					</VStack>
-				</SortableContext>
-			</DndContext>
+			{/* Plant Lists */}
+			<VStack gap={6} align="stretch">
+				{organizedPlants.map((group, groupIndex) => (
+					<Box key={groupIndex}>
+						{group.title && (
+							<Heading size="sm" mb={3} color="gray.700">
+								{group.title}
+							</Heading>
+						)}
+
+						{group.plants.length === 0 ? (
+							<Text fontSize="sm" color="gray.500" textAlign="center" py={4}>
+								No plants in this group
+							</Text>
+						) : isDragEnabled ? (
+							<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+								<SortableContext items={group.plants.map((item) => item.plant.id)} strategy={verticalListSortingStrategy}>
+									<VStack gap={4} align="stretch">
+										{group.plants.map((item) => (
+											<SortablePlantCard
+												key={item.plant.id}
+												plant={item.plant}
+												species={item.species}
+												room={item.room}
+												status={item.status}
+												checkIns={item.checkIns}
+												hasCheckIns={item.hasCheckIns}
+												nextCheckDate={item.nextCheckDate}
+												onCheckIn={() => setCheckInPlantId(item.plant.id)}
+												onDetails={() => setDetailsPlantId(item.plant.id)}
+												isDragDisabled={false}
+											/>
+										))}
+									</VStack>
+								</SortableContext>
+							</DndContext>
+						) : (
+							<VStack gap={4} align="stretch">
+								{group.plants.map((item) => (
+									<SortablePlantCard
+										key={item.plant.id}
+										plant={item.plant}
+										species={item.species}
+										room={item.room}
+										status={item.status}
+										checkIns={item.checkIns}
+										hasCheckIns={item.hasCheckIns}
+										nextCheckDate={item.nextCheckDate}
+										onCheckIn={() => setCheckInPlantId(item.plant.id)}
+										onDetails={() => setDetailsPlantId(item.plant.id)}
+										isDragDisabled={true}
+									/>
+								))}
+							</VStack>
+						)}
+					</Box>
+				))}
+			</VStack>
 
 			{/* Check-in Modal */}
 			{checkInPlantId && (
