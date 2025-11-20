@@ -4,6 +4,7 @@ import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
 import { getPlantById } from '../data/plantDatabase'
 import { CheckInModal } from './CheckInModal'
+import { PlantDetailsModal } from './PlantDetailsModal'
 
 export function PlantList() {
 	const plants = usePlantStore((state) => state.plants)
@@ -12,6 +13,7 @@ export function PlantList() {
 	const getRoom = useRoomStore((state) => state.getRoom)
 
 	const [checkInPlantId, setCheckInPlantId] = useState<string | null>(null)
+	const [detailsPlantId, setDetailsPlantId] = useState<string | null>(null)
 
 	if (plants.length === 0) {
 		return (
@@ -83,19 +85,28 @@ export function PlantList() {
 											)}
 										</VStack>
 
-										<VStack gap={2} minW={{ base: 'full', sm: 'auto' }}>
-											<Button
-												size="sm"
-												colorScheme="green"
-												width={{ base: 'full', sm: 'auto' }}
-												onClick={() => setCheckInPlantId(plant.id)}
-											>
-												Check-in
-											</Button>
+										<VStack gap={2} minW={{ base: 'full', sm: 'auto' }} pointerEvents="auto">
+										  <Button
+											size="sm"
+											colorScheme="green"
+											width={{ base: 'full', sm: 'auto' }}
+											onClick={(e) => {
+											  e.stopPropagation()
+											  setCheckInPlantId(plant.id)
+											}}
+											pointerEvents="auto"
+										  >
+											Check-in
+										  </Button>
 											<Button
 												size="sm"
 												variant="ghost"
 												width={{ base: 'full', sm: 'auto' }}
+												onClick={(e) => {
+													e.stopPropagation()
+													setDetailsPlantId(plant.id)
+												}}
+												pointerEvents="auto"
 											>
 												Details
 											</Button>
@@ -134,6 +145,15 @@ export function PlantList() {
 					plantId={checkInPlantId}
 					isOpen={!!checkInPlantId}
 					onClose={() => setCheckInPlantId(null)}
+				/>
+			)}
+
+			{/* Plant Details Modal */}
+			{detailsPlantId !== null && (
+				<PlantDetailsModal
+					plantId={detailsPlantId}
+					isOpen={true}
+					onClose={() => setDetailsPlantId(null)}
 				/>
 			)}
 		</>

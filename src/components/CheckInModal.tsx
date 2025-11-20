@@ -122,8 +122,18 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	]
 
 	return (
-		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl">
-			<DialogContent maxH="90vh">
+		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
+			<DialogContent
+				maxH="90vh"
+				position="fixed"
+				top="50%"
+				left="50%"
+				transform="translate(-50%, -50%)"
+				zIndex={1400}
+				bg="white"
+				borderRadius="lg"
+				boxShadow="xl"
+			>
 				<DialogHeader>
 					<DialogTitle>Check-in: {plant.customName}</DialogTitle>
 					<DialogCloseTrigger />

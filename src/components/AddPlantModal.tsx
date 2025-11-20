@@ -74,8 +74,18 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	const selectedSpecies = PLANT_DATABASE.find((p) => p.id === selectedSpeciesId)
 
 	return (
-		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl">
-			<DialogContent maxH="90vh">
+		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
+			<DialogContent
+				maxH={{ base: '95vh', md: '90vh' }}
+				position="fixed"
+				top="50%"
+				left="50%"
+				transform="translate(-50%, -50%)"
+				zIndex={1400}
+				bg="white"
+				borderRadius="lg"
+				boxShadow="xl"
+			>
 				<DialogHeader>
 					<DialogTitle>
 						{step === 'select-plant' ? 'Choose Your Plant Type' : 'Plant Details'}
@@ -83,7 +93,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 					<DialogCloseTrigger />
 				</DialogHeader>
 
-				<DialogBody overflowY="auto" maxH="60vh">
+				<DialogBody overflowY="auto" maxH={{ base: '70vh', md: '60vh' }}>
 					{/* STEP 1: Select Plant */}
 					{step === 'select-plant' && (
 						<VStack gap={4} align="stretch">
