@@ -75,9 +75,12 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	}
 
 	const handleSubmit = () => {
-		// At least one thing should be recorded
-		if (!soilMoisture && leafConditions.length === 0 && actions.length === 0 && !notes.trim() && !photoUrl) {
-			alert('Please add at least one observation (soil, leaves, actions, notes, or photo)')
+		// Check if anything was recorded or condition changed
+		const hasObservation = soilMoisture || leafConditions.length > 0 || actions.length > 0 || notes.trim() || photoUrl
+		const conditionChanged = plantCondition !== plant.condition
+
+		if (!hasObservation && !conditionChanged) {
+			alert('Please update the plant condition or add at least one observation')
 			return
 		}
 
@@ -91,7 +94,7 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 		})
 
 		// Update plant condition if it changed
-		if (plantCondition !== plant.condition) {
+		if (conditionChanged) {
 			updatePlant(plant.id, { condition: plantCondition })
 		}
 
