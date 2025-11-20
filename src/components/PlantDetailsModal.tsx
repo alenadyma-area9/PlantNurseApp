@@ -7,6 +7,7 @@ import {
 	DialogFooter,
 	DialogTitle,
 	DialogCloseTrigger,
+	DialogBackdrop,
 } from '@chakra-ui/react'
 import {
 	Button,
@@ -201,6 +202,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	return (
 	<>
 	  <DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} size="lg" placement="center">
+		<DialogBackdrop />
 		<DialogContent
 		  maxW={{ base: '95vw', sm: '90vw', md: '600px' }}
 		  maxH="90vh"
