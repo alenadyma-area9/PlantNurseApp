@@ -8,7 +8,6 @@ import {
 	DialogCloseTrigger,
 } from '@chakra-ui/react'
 import { Button, VStack, Text, Box, HStack } from '@chakra-ui/react'
-import { Switch } from '@chakra-ui/react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useEscapeKey, useEnterKey } from '../hooks/useKeyboardShortcut'
 
@@ -45,57 +44,67 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 				</DialogHeader>
 
 				<DialogBody>
-					<VStack gap={5} align="stretch">
-						{/* Temperature Unit */}
-						<Box>
-							<Text fontSize="md" fontWeight="bold" mb={3}>
-								Temperature Unit
-							</Text>
-							<HStack justify="space-between" p={3} bg="gray.50" borderRadius="md">
-								<VStack align="start" gap={1}>
-									<Text fontSize="sm" fontWeight="medium">
-										{temperatureUnit === 'fahrenheit' ? '🇺🇸 Fahrenheit (°F)' : '🌍 Celsius (°C)'}
-									</Text>
-									<Text fontSize="xs" color="gray.600">
-										{temperatureUnit === 'fahrenheit'
-											? 'US standard temperature scale'
-											: 'Metric temperature scale'}
-									</Text>
-								</VStack>
-								<Switch.Root
-								  checked={temperatureUnit === 'celsius'}
-								  onCheckedChange={() => toggleTemperatureUnit()}
-								  colorPalette="green"
-								>
-								  <Switch.Thumb />
-								</Switch.Root>
-							</HStack>
-						</Box>
+					 <VStack gap={5} align="stretch">
+					{/* Temperature Unit */}
+					<Box>
+					  <Text fontSize="md" fontWeight="bold" mb={2}>
+						Temperature Unit
+					  </Text>
+					  <HStack gap={2}>
+						<Button
+						  flex={1}
+						  variant={temperatureUnit === 'fahrenheit' ? 'solid' : 'outline'}
+						  colorScheme={temperatureUnit === 'fahrenheit' ? 'green' : 'gray'}
+						  onClick={() => temperatureUnit !== 'fahrenheit' && toggleTemperatureUnit()}
+						>
+						  <VStack gap={0}>
+							<Text fontSize="sm" fontWeight="bold">°F</Text>
+							<Text fontSize="xs">Fahrenheit</Text>
+						  </VStack>
+						</Button>
+						<Button
+						  flex={1}
+						  variant={temperatureUnit === 'celsius' ? 'solid' : 'outline'}
+						  colorScheme={temperatureUnit === 'celsius' ? 'green' : 'gray'}
+						  onClick={() => temperatureUnit !== 'celsius' && toggleTemperatureUnit()}
+						>
+						  <VStack gap={0}>
+							<Text fontSize="sm" fontWeight="bold">°C</Text>
+							<Text fontSize="xs">Celsius</Text>
+						  </VStack>
+						</Button>
+					  </HStack>
+					</Box>
 
 						{/* Distance Unit */}
 						<Box>
-							<Text fontSize="md" fontWeight="bold" mb={3}>
-								Distance Unit
-							</Text>
-							<HStack justify="space-between" p={3} bg="gray.50" borderRadius="md">
-								<VStack align="start" gap={1}>
-									<Text fontSize="sm" fontWeight="medium">
-										{distanceUnit === 'inches' ? '📏 Inches' : '📐 Centimeters'}
-									</Text>
-									<Text fontSize="xs" color="gray.600">
-										{distanceUnit === 'inches'
-											? 'For soil depth measurements'
-											: 'For soil depth measurements'}
-									</Text>
-								</VStack>
-								<Switch.Root
-								  checked={distanceUnit === 'cm'}
-								  onCheckedChange={() => toggleDistanceUnit()}
-								  colorPalette="green"
-								>
-								  <Switch.Thumb />
-								</Switch.Root>
-							</HStack>
+						  <Text fontSize="md" fontWeight="bold" mb={2}>
+							Distance Unit
+						  </Text>
+						  <HStack gap={2}>
+							<Button
+							  flex={1}
+							  variant={distanceUnit === 'inches' ? 'solid' : 'outline'}
+							  colorScheme={distanceUnit === 'inches' ? 'green' : 'gray'}
+							  onClick={() => distanceUnit !== 'inches' && toggleDistanceUnit()}
+							>
+							  <VStack gap={0}>
+								<Text fontSize="sm" fontWeight="bold">in</Text>
+								<Text fontSize="xs">Inches</Text>
+							  </VStack>
+							</Button>
+							<Button
+							  flex={1}
+							  variant={distanceUnit === 'cm' ? 'solid' : 'outline'}
+							  colorScheme={distanceUnit === 'cm' ? 'green' : 'gray'}
+							  onClick={() => distanceUnit !== 'cm' && toggleDistanceUnit()}
+							>
+							  <VStack gap={0}>
+								<Text fontSize="sm" fontWeight="bold">cm</Text>
+								<Text fontSize="xs">Centimeters</Text>
+							  </VStack>
+							</Button>
+						  </HStack>
 						</Box>
 
 						{/* Info Box */}

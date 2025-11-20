@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Text, VStack, Card, HStack, Badge, Button } from '@chakra-ui/react'
+import { Box, Text, VStack, Card, HStack, Badge, Button, Image as ChakraImage } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
 import { getPlantById } from '../data/plantDatabase'
@@ -61,9 +61,24 @@ export function PlantList() {
 					return (
 						<Card.Root key={plant.id} variant="outline">
 							<Card.Body p={{ base: 3, md: 4 }}>
-								<VStack gap={3} align="stretch">
-									{/* Header */}
-									<HStack justify="space-between" align="start" flexWrap="wrap" gap={2}>
+								<HStack gap={3} align="start">
+									{/* Plant Photo */}
+									{plant.photoUrl && (
+										<Box flexShrink={0}>
+											<ChakraImage
+												src={plant.photoUrl}
+												alt={plant.customName}
+												width="80px"
+												height="80px"
+												objectFit="cover"
+												borderRadius="md"
+											/>
+										</Box>
+									)}
+
+									<VStack gap={3} align="stretch" flex={1}>
+										{/* Header */}
+										<HStack justify="space-between" align="start" flexWrap="wrap" gap={2}>
 										<VStack align="start" gap={1} flex={1} minW="0">
 											<HStack flexWrap="wrap" gap={2}>
 												<Text fontSize={{ base: 'lg', md: 'xl' }} fontWeight="bold" lineClamp={1}>
@@ -132,7 +147,8 @@ export function PlantList() {
 											</Text>
 										)}
 									</HStack>
-								</VStack>
+									</VStack>
+								</HStack>
 							</Card.Body>
 						</Card.Root>
 					)

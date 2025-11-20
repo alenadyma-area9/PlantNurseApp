@@ -22,6 +22,7 @@ import {
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
 import type { PlantSize, PlantCondition } from '../types'
+import { PhotoUpload } from './PhotoUpload'
 
 interface EditPlantModalProps {
 	plantId: string
@@ -39,6 +40,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	const [size, setSize] = useState<PlantSize>('small')
 	const [condition, setCondition] = useState<PlantCondition>('just-added')
 	const [notes, setNotes] = useState('')
+	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 
 	useEffect(() => {
 		if (plant) {
@@ -47,6 +49,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 			setSize(plant.size)
 			setCondition(plant.condition)
 			setNotes(plant.notes || '')
+			setPhotoUrl(plant.photoUrl)
 		}
 	}, [plant])
 
@@ -69,6 +72,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 			size,
 			condition,
 			notes: notes.trim() || undefined,
+			photoUrl,
 		})
 		onClose()
 	}
@@ -169,14 +173,22 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 						</Box>
 
 						<Box>
-							<Text fontSize="sm" fontWeight="bold" mb={2}>
-								Notes (optional):
-							</Text>
-							<Input
-								value={notes}
-								onChange={(e) => setNotes(e.target.value)}
-								placeholder="Any additional notes..."
-							/>
+						  <Text fontSize="sm" fontWeight="bold" mb={2}>
+							Notes (optional):
+						  </Text>
+						  <Input
+							value={notes}
+							onChange={(e) => setNotes(e.target.value)}
+							placeholder="Any additional notes..."
+						  />
+						</Box>
+
+						<Box>
+						  <PhotoUpload
+							currentPhoto={photoUrl}
+							onPhotoChange={setPhotoUrl}
+							label="Plant Photo"
+						  />
 						</Box>
 					</VStack>
 				</DialogBody>

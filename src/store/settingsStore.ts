@@ -19,9 +19,10 @@ interface SettingsStore extends Settings {
 export const useSettingsStore = create<SettingsStore>()(
 	persist(
 		(set) => ({
-			// Default to Fahrenheit and inches (US)
-			temperatureUnit: 'fahrenheit',
-			distanceUnit: 'inches',
+			// Default to Celsius and cm (Metric/European) for NEW users only
+			// Existing users keep their manually chosen settings
+			temperatureUnit: 'celsius',
+			distanceUnit: 'cm',
 
 			setTemperatureUnit: (unit) => set({ temperatureUnit: unit }),
 			setDistanceUnit: (unit) => set({ distanceUnit: unit }),

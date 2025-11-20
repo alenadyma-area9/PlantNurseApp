@@ -271,12 +271,15 @@ export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProp
 										onChange={(e) => setWindowDirection(e.target.value as WindowDirection | '')}
 									>
 										<option value="">No window / Not sure</option>
-										<option value="north">North - Least sun</option>
+										<option value="north">North</option>
 										<option value="east">East - Morning sun</option>
-										<option value="south">South - Most sun (Northern hemisphere)</option>
+										<option value="south">South</option>
 										<option value="west">West - Afternoon sun</option>
 									</NativeSelectField>
 								</NativeSelectRoot>
+								<Text fontSize="xs" color="gray.500" mt={1}>
+									💡 In Northern Hemisphere (USA, Europe): South = most sun, North = least sun
+								</Text>
 							</Box>
 
 							<Box>

@@ -20,8 +20,11 @@ import {
 	SimpleGrid,
 } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { getPlantById } from '../data/plantDatabase'
-import type { SoilMoisture, LeafCondition, CheckInAction } from '../types'
+import type { SoilMoisture, LeafCondition, CheckInAction, PlantCondition } from '../types'
+import { PhotoUpload } from './PhotoUpload'
+import { formatDistance } from '../utils/unitConversion'
 
 interface CheckInModalProps {
 	plantId: string
@@ -32,16 +35,27 @@ interface CheckInModalProps {
 export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	const plant = usePlantStore((state) => state.plants.find((p) => p.id === plantId))
 	const addCheckIn = usePlantStore((state) => state.addCheckIn)
+	const updatePlant = usePlantStore((state) => state.updatePlant)
+	const distanceUnit = useSettingsStore((state) => state.distanceUnit)
 
 	const [soilMoisture, setSoilMoisture] = useState<SoilMoisture | null>(null)
 	const [leafConditions, setLeafConditions] = useState<LeafCondition[]>([])
 	const [actions, setActions] = useState<CheckInAction[]>([])
 	const [notes, setNotes] = useState('')
+	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
+	const [plantCondition, setPlantCondition] = useState<PlantCondition>(plant?.condition || 'healthy')
 
 	if (!plant) return null
 
 	const species = getPlantById(plant.speciesId)
 	if (!species) return null
+
+	// Update condition when plant changes
+	useState(() => {
+		if (plant) {
+			setPlantCondition(plant.condition)
+		}
+	})
 
 	const handleToggleLeafCondition = (condition: LeafCondition) => {
 		setLeafConditions((prev) =>
@@ -76,7 +90,13 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 			leafCondition: leafConditions,
 			actionsTaken: actions,
 			notes: notes.trim() || undefined,
+			photoUrl,
 		})
+
+		// Update plant condition if it changed
+		if (plantCondition !== plant.condition) {
+			updatePlant(plant.id, { condition: plantCondition })
+		}
 
 		handleClose()
 	}
@@ -86,6 +106,10 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 		setLeafConditions([])
 		setActions([])
 		setNotes('')
+		setPhotoUrl(undefined)
+		if (plant) {
+			setPlantCondition(plant.condition)
+		}
 		onClose()
 	}
 
@@ -147,22 +171,36 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 					<VStack gap={5} align="stretch">
 						{/* Plant Info */}
 						<Box bg="green.50" p={3} borderRadius="md">
-							<Text fontSize="sm" fontWeight="bold" color="green.800">
+						  <HStack justify="space-between" align="start">
+							<VStack align="start" gap={1}>
+							  <Text fontSize="sm" fontWeight="bold" color="green.800">
 								{species.commonName}
-							</Text>
-							<Text fontSize="xs" color="green.700">
-								Check soil: {species.watering.soilCheckDepth} • Prefers: {species.watering.soilPreference} soil
-							</Text>
+							  </Text>
+							  <Text fontSize="xs" color="green.700">
+								Check soil: {formatDistance(species.watering.soilCheckDepth, distanceUnit)} • Prefers: {species.watering.soilPreference} soil
+							  </Text>
+							</VStack>
+							<Badge
+							  colorScheme={
+								plant.condition === 'healthy' ? 'green' :
+								plant.condition === 'needs-attention' ? 'yellow' :
+								plant.condition === 'struggling' ? 'red' : 'gray'
+							  }
+							  fontSize="xs"
+							>
+							  Current: {plant.condition.replace('-', ' ')}
+							</Badge>
+						  </HStack>
 						</Box>
 
 						{/* Step 1: Soil Moisture */}
 						<Box>
-							<Text fontSize="md" fontWeight="bold" mb={2}>
-								1. How moist is the soil?
-							</Text>
-							<Text fontSize="sm" color="gray.600" mb={3}>
-								Stick your finger in the soil {species.watering.soilCheckDepth} deep
-							</Text>
+						  <Text fontSize="md" fontWeight="bold" mb={2}>
+							1. How moist is the soil?
+						  </Text>
+						  <Text fontSize="sm" color="gray.600" mb={3}>
+							Stick your finger in the soil {formatDistance(species.watering.soilCheckDepth, distanceUnit)} deep
+						  </Text>
 
 							<SimpleGrid columns={{ base: 2, sm: 3 }} gap={2}>
 								{soilOptions.map((option) => (
@@ -253,16 +291,58 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 
 						{/* Step 4: Notes */}
 						<Box>
-							<Text fontSize="md" fontWeight="bold" mb={2}>
-								4. Any notes? (optional)
-							</Text>
-							<Textarea
-								placeholder="e.g., New growth appearing, moved closer to window..."
-								value={notes}
-								onChange={(e) => setNotes(e.target.value)}
-								rows={3}
-								fontSize="sm"
-							/>
+						  <Text fontSize="md" fontWeight="bold" mb={2}>
+							4. Any notes? (optional)
+						  </Text>
+						  <Textarea
+							placeholder="e.g., New growth appearing, moved closer to window..."
+							value={notes}
+							onChange={(e) => setNotes(e.target.value)}
+							rows={3}
+							fontSize="sm"
+						  />
+						</Box>
+
+						{/* Step 5: Overall Condition */}
+						<Box>
+						  <Text fontSize="md" fontWeight="bold" mb={2}>
+							5. How is your plant doing overall?
+						  </Text>
+						  <Text fontSize="sm" color="gray.600" mb={3}>
+							Update the plant's overall status
+						  </Text>
+						  <VStack gap={2}>
+							{([
+							  { value: 'healthy', label: 'Healthy & thriving', emoji: '🌿', color: 'green' },
+							  { value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️', color: 'yellow' },
+							  { value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀', color: 'red' },
+							] as Array<{ value: PlantCondition; label: string; emoji: string; color: string }>).map((c) => (
+							  <Button
+								key={c.value}
+								size="sm"
+								variant={plantCondition === c.value ? 'solid' : 'outline'}
+								colorScheme={plantCondition === c.value ? c.color : 'gray'}
+								onClick={() => setPlantCondition(c.value)}
+								width="full"
+								justifyContent="flex-start"
+							  >
+								<Text mr={2}>{c.emoji}</Text>
+								{c.label}
+							  </Button>
+							))}
+						  </VStack>
+						</Box>
+
+						{/* Step 6: Photo */}
+						<Box>
+						  <Text fontSize="md" fontWeight="bold" mb={2}>
+							6. Add a photo (optional)
+						  </Text>
+						  <PhotoUpload
+							currentPhoto={photoUrl}
+							onPhotoChange={setPhotoUrl}
+							label=""
+						  />
 						</Box>
 					</VStack>
 				</DialogBody>

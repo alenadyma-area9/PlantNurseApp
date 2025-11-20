@@ -14,6 +14,7 @@ import { usePlantStore } from '../store/plantStore'
 import { useRoomStore, DEFAULT_ROOM_ID } from '../store/roomStore'
 import { PLANT_DATABASE } from '../data/plantDatabase'
 import type { PlantSize, PlantCondition } from '../types'
+import { PhotoUpload } from './PhotoUpload'
 
 interface AddPlantModalProps {
 	isOpen: boolean
@@ -29,6 +30,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	const [customName, setCustomName] = useState('')
 	const [size, setSize] = useState<PlantSize>('small')
 	const [condition, setCondition] = useState<PlantCondition>('just-added')
+	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 
 	const addPlant = usePlantStore((state) => state.addPlant)
 	const rooms = useRoomStore((state) => state.rooms)
@@ -57,6 +59,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 				roomId: selectedRoomId,
 				size,
 				condition,
+				photoUrl,
 			})
 			handleClose()
 		}
@@ -69,6 +72,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 		setCustomName('')
 		setSize('small')
 		setCondition('just-added')
+		setPhotoUrl(undefined)
 		onClose()
 	}
 
@@ -237,6 +241,14 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 										</Button>
 									))}
 								</VStack>
+							</Box>
+
+							<Box>
+								<PhotoUpload
+									currentPhoto={photoUrl}
+									onPhotoChange={setPhotoUrl}
+									label="Plant Photo"
+								/>
 							</Box>
 						</VStack>
 					)}

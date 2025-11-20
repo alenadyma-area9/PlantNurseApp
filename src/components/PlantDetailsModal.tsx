@@ -16,6 +16,7 @@ import {
 	HStack,
 	Badge,
 	Card,
+	Image as ChakraImage,
 } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
@@ -88,13 +89,30 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 					</DialogHeader>
 
 					<DialogBody overflowY="auto" maxH="70vh">
-						<VStack gap={4} align="stretch">
-							{/* Plant Info Header */}
-							<Box bg="green.50" p={4} borderRadius="md">
-								<VStack align="start" gap={2}>
-									<Text fontSize="lg" fontWeight="bold" color="green.800">
-										{species.commonName}
-									</Text>
+						 <VStack gap={4} align="stretch">
+						{/* Plant Info Header */}
+						<Box bg="green.50" p={4} borderRadius="md">
+						  <HStack align="start" gap={4}>
+							{/* Plant Photo */}
+							{plant.photoUrl && (
+							  <Box flexShrink={0}>
+								<ChakraImage
+								  src={plant.photoUrl}
+								  alt={plant.customName}
+								  width="120px"
+								  height="120px"
+								  objectFit="cover"
+								  borderRadius="md"
+								  border="2px solid"
+								  borderColor="green.200"
+								/>
+							  </Box>
+							)}
+
+							<VStack align="start" gap={2} flex={1}>
+							  <Text fontSize="lg" fontWeight="bold" color="green.800">
+								{species.commonName}
+							  </Text>
 									<Text fontSize="sm" color="green.700">
 										{species.scientificName}
 									</Text>
@@ -128,9 +146,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												<Text color="gray.600">Total check-ins:</Text>
 												<Text fontWeight="medium">{checkIns.length}</Text>
 											</HStack>
-										</VStack>
-									</Box>
+								  </VStack>
+								</Box>
 								</VStack>
+							  </HStack>
 							</Box>
 
 							{/* Tab Buttons */}
@@ -260,10 +279,25 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 										</Box>
 									) : (
 										checkIns.map((checkIn) => (
-											<Card.Root key={checkIn.id} variant="outline" size="sm">
-												<Card.Body>
-													<VStack align="stretch" gap={2}>
-														<HStack justify="space-between">
+										  <Card.Root key={checkIn.id} variant="outline" size="sm">
+											<Card.Body>
+											  <HStack align="start" gap={3}>
+												{/* Check-in Photo */}
+												{checkIn.photoUrl && (
+												  <Box flexShrink={0}>
+													<ChakraImage
+													  src={checkIn.photoUrl}
+													  alt="Check-in photo"
+													  width="60px"
+													  height="60px"
+													  objectFit="cover"
+													  borderRadius="md"
+													/>
+												  </Box>
+												)}
+
+												<VStack align="stretch" gap={2} flex={1}>
+												  <HStack justify="space-between">
 															<Text fontSize="sm" fontWeight="bold">
 																{new Date(checkIn.date).toLocaleDateString('en-US', {
 																	month: 'short',
@@ -314,15 +348,16 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 															</Box>
 														)}
 
-														{checkIn.notes && (
-															<Box>
-																<Text fontSize="xs" color="gray.600" mb={1}>
-																	Notes:
-																</Text>
-																<Text fontSize="xs">{checkIn.notes}</Text>
-															</Box>
-														)}
-													</VStack>
+															{checkIn.notes && (
+																<Box>
+																	<Text fontSize="xs" color="gray.600" mb={1}>
+																		Notes:
+																	</Text>
+																	<Text fontSize="xs">{checkIn.notes}</Text>
+																</Box>
+															)}
+														</VStack>
+													</HStack>
 												</Card.Body>
 											</Card.Root>
 										))
