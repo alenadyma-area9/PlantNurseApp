@@ -39,12 +39,12 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	const updatePlant = usePlantStore((state) => state.updatePlant)
 	const distanceUnit = useSettingsStore((state) => state.distanceUnit)
 
+	const [plantCondition, setPlantCondition] = useState<PlantCondition>(plant?.condition || 'healthy')
 	const [soilMoisture, setSoilMoisture] = useState<SoilMoisture | null>(null)
 	const [leafConditions, setLeafConditions] = useState<LeafCondition[]>([])
 	const [actions, setActions] = useState<CheckInAction[]>([])
 	const [notes, setNotes] = useState('')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
-	const [plantCondition, setPlantCondition] = useState<PlantCondition>(plant?.condition || 'healthy')
 
 	if (!plant) return null
 
@@ -75,20 +75,16 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	}
 
 	const handleSubmit = () => {
-		if (!soilMoisture) {
-			alert('Please check and record the soil moisture first')
-			return
-		}
-
-		if (leafConditions.length === 0) {
-			alert('Please select at least one leaf condition')
+		// At least one thing should be recorded
+		if (!soilMoisture && leafConditions.length === 0 && actions.length === 0 && !notes.trim() && !photoUrl) {
+			alert('Please add at least one observation (soil, leaves, actions, notes, or photo)')
 			return
 		}
 
 		addCheckIn({
 			plantId: plant.id,
-			soilMoisture,
-			leafCondition: leafConditions,
+			soilMoisture: soilMoisture || undefined,
+			leafCondition: leafConditions.length > 0 ? leafConditions : undefined,
 			actionsTaken: actions,
 			notes: notes.trim() || undefined,
 			photoUrl,
@@ -103,16 +99,23 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	}
 
 	const handleClose = () => {
+		if (plant) {
+			setPlantCondition(plant.condition)
+		}
 		setSoilMoisture(null)
 		setLeafConditions([])
 		setActions([])
 		setNotes('')
 		setPhotoUrl(undefined)
-		if (plant) {
-			setPlantCondition(plant.condition)
-		}
 		onClose()
 	}
+
+	// Condition options
+	const conditionOptions = [
+		{ value: 'healthy', label: 'Healthy & thriving', emoji: '🌿', color: 'green' },
+		{ value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️', color: 'yellow' },
+		{ value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀', color: 'red' },
+	] as Array<{ value: PlantCondition; label: string; emoji: string; color: string }>
 
 	// Soil moisture options
 	const soilOptions = [
@@ -150,6 +153,9 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 	// Keyboard shortcuts (Escape only - Enter would conflict with textarea)
 	useEscapeKey(handleClose, isOpen)
 
+	// Get current condition emoji and color
+	const currentCondition = conditionOptions.find((c) => c.value === plant.condition)
+
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
 			<DialogBackdrop />
@@ -171,34 +177,65 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 
 				<DialogBody overflowY="auto" maxH="60vh">
 					<VStack gap={5} align="stretch">
-						{/* Plant Info */}
+						{/* Plant Info & Current Status */}
 						<Box bg="green.50" p={3} borderRadius="md">
-						  <HStack justify="space-between" align="start">
-							<VStack align="start" gap={1}>
+						  <VStack align="stretch" gap={2}>
+							<HStack justify="space-between" align="start">
 							  <Text fontSize="sm" fontWeight="bold" color="green.800">
 								{species.commonName}
 							  </Text>
-							  <Text fontSize="xs" color="green.700">
-								Check soil: {formatDistance(species.watering.soilCheckDepth, distanceUnit)} • Prefers: {species.watering.soilPreference} soil
-							  </Text>
-							</VStack>
-							<Badge
-							  colorScheme={
-								plant.condition === 'healthy' ? 'green' :
-								plant.condition === 'needs-attention' ? 'yellow' :
-								plant.condition === 'struggling' ? 'red' : 'gray'
-							  }
-							  fontSize="xs"
-							>
-							  Current: {plant.condition.replace('-', ' ')}
-							</Badge>
-						  </HStack>
+							  <HStack>
+								<Text fontSize="xs" fontWeight="medium" color="gray.600">
+								  Current status:
+								</Text>
+								<Badge
+								  colorScheme={currentCondition?.color || 'gray'}
+								  fontSize="xs"
+								  display="flex"
+								  alignItems="center"
+								  gap={1}
+								>
+								  <Text>{currentCondition?.emoji}</Text>
+								  <Text>{plant.condition.replace('-', ' ')}</Text>
+								</Badge>
+							  </HStack>
+							</HStack>
+							<Text fontSize="xs" color="green.700">
+							  Check soil: {formatDistance(species.watering.soilCheckDepth, distanceUnit)} • Prefers: {species.watering.soilPreference} soil
+							</Text>
+						  </VStack>
 						</Box>
 
-						{/* Step 1: Soil Moisture */}
+						{/* Step 1: Overall Condition */}
 						<Box>
 						  <Text fontSize="md" fontWeight="bold" mb={2}>
-							1. How moist is the soil?
+							1. How is your plant doing overall?
+						  </Text>
+						  <Text fontSize="sm" color="gray.600" mb={3}>
+							Give your plant's overall health assessment
+						  </Text>
+						  <VStack gap={2}>
+							{conditionOptions.map((c) => (
+							  <Button
+								key={c.value}
+								size="sm"
+								variant={plantCondition === c.value ? 'solid' : 'outline'}
+								colorScheme={plantCondition === c.value ? c.color : 'gray'}
+								onClick={() => setPlantCondition(c.value)}
+								width="full"
+								justifyContent="flex-start"
+							  >
+								<Text mr={2}>{c.emoji}</Text>
+								{c.label}
+							  </Button>
+							))}
+						  </VStack>
+						</Box>
+
+						{/* Step 2: Soil Moisture */}
+						<Box>
+						  <Text fontSize="md" fontWeight="bold" mb={2}>
+							2. How moist is the soil? (optional)
 						  </Text>
 						  <Text fontSize="sm" color="gray.600" mb={3}>
 							Stick your finger in the soil {formatDistance(species.watering.soilCheckDepth, distanceUnit)} deep
@@ -224,10 +261,10 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 							</SimpleGrid>
 						</Box>
 
-						{/* Step 2: Leaf Condition */}
+						{/* Step 3: Leaf Condition */}
 						<Box>
 							<Text fontSize="md" fontWeight="bold" mb={2}>
-								2. How do the leaves look?
+								3. How do the leaves look? (optional)
 							</Text>
 							<Text fontSize="sm" color="gray.600" mb={3}>
 								Select all that apply
@@ -265,13 +302,13 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 							)}
 						</Box>
 
-						{/* Step 3: Actions Taken */}
+						{/* Step 4: Actions Taken */}
 						<Box>
 							<Text fontSize="md" fontWeight="bold" mb={2}>
-								3. What did you do today?
+								4. What did you do today? (optional)
 							</Text>
 							<Text fontSize="sm" color="gray.600" mb={3}>
-								Select all that apply (or "Just observing")
+								Select actions or just "Just observing"
 							</Text>
 
 							<SimpleGrid columns={{ base: 2, sm: 3 }} gap={2}>
@@ -291,10 +328,10 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 							</SimpleGrid>
 						</Box>
 
-						{/* Step 4: Notes */}
+						{/* Step 5: Notes */}
 						<Box>
 						  <Text fontSize="md" fontWeight="bold" mb={2}>
-							4. Any notes? (optional)
+							5. Any notes? (optional)
 						  </Text>
 						  <Textarea
 							placeholder="e.g., New growth appearing, moved closer to window..."
@@ -303,36 +340,6 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 							rows={3}
 							fontSize="sm"
 						  />
-						</Box>
-
-						{/* Step 5: Overall Condition */}
-						<Box>
-						  <Text fontSize="md" fontWeight="bold" mb={2}>
-							5. How is your plant doing overall?
-						  </Text>
-						  <Text fontSize="sm" color="gray.600" mb={3}>
-							Update the plant's overall status
-						  </Text>
-						  <VStack gap={2}>
-							{([
-							  { value: 'healthy', label: 'Healthy & thriving', emoji: '🌿', color: 'green' },
-							  { value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️', color: 'yellow' },
-							  { value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀', color: 'red' },
-							] as Array<{ value: PlantCondition; label: string; emoji: string; color: string }>).map((c) => (
-							  <Button
-								key={c.value}
-								size="sm"
-								variant={plantCondition === c.value ? 'solid' : 'outline'}
-								colorScheme={plantCondition === c.value ? c.color : 'gray'}
-								onClick={() => setPlantCondition(c.value)}
-								width="full"
-								justifyContent="flex-start"
-							  >
-								<Text mr={2}>{c.emoji}</Text>
-								{c.label}
-							  </Button>
-							))}
-						  </VStack>
 						</Box>
 
 						{/* Step 6: Photo */}
@@ -356,7 +363,6 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 					<Button
 						colorScheme="green"
 						onClick={handleSubmit}
-						disabled={!soilMoisture || leafConditions.length === 0}
 					>
 						Save Check-in
 					</Button>

@@ -180,40 +180,43 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 							</Box>
 
 							<Box>
-								<Text fontSize="sm" fontWeight="bold" mb={2}>
-									Location:
-								</Text>
-								<VStack gap={2} align="stretch">
-									<NativeSelectRoot>
-										<NativeSelectField
-											value={selectedRoomId}
-											onChange={(e) => setSelectedRoomId(e.target.value)}
-										>
-											{rooms.map((room) => (
-												<option key={room.id} value={room.id}>
-													{room.name} ({room.lightLevel} light, {room.temperature})
-												</option>
-											))}
-										</NativeSelectField>
-									</NativeSelectRoot>
+								<HStack justify="space-between" align="start" mb={2}>
+									<Text fontSize="sm" fontWeight="bold">
+										Location:
+									</Text>
 									<Button
-										size="sm"
-										variant="outline"
+										size="xs"
+										variant="ghost"
 										colorScheme="green"
 										onClick={() => setIsRoomModalOpen(true)}
-										width="full"
+										px={2}
 									>
-										+ Add New Room
+										🏠 Manage Rooms
 									</Button>
-								</VStack>
+								</HStack>
+								<NativeSelectRoot>
+									<NativeSelectField
+										value={selectedRoomId}
+										onChange={(e) => setSelectedRoomId(e.target.value)}
+									>
+										{rooms.map((room) => (
+											<option key={room.id} value={room.id}>
+												{room.name} ({room.lightLevel} light, {room.temperature})
+											</option>
+										))}
+									</NativeSelectField>
+								</NativeSelectRoot>
 								<Text fontSize="xs" color="gray.500" mt={1}>
 									Where will you keep this plant?
 								</Text>
 							</Box>
 
 							<Box>
-								<Text fontSize="sm" fontWeight="bold" mb={2}>
+								<Text fontSize="sm" fontWeight="bold" mb={1}>
 									Current size:
+								</Text>
+								<Text fontSize="xs" color="gray.500" mb={2}>
+									Approximate pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)
 								</Text>
 								<HStack gap={2}>
 									{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
@@ -301,6 +304,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 						setSelectedRoomId(rooms[rooms.length - 1].id)
 					}
 				}}
+				nested={true}
 			/>
 		</DialogRoot>
 	)

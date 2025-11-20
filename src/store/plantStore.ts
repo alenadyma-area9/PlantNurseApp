@@ -16,6 +16,7 @@ interface PlantStore {
 	addPlant: (plant: Omit<UserPlant, 'id' | 'dateAdded'>) => void
 	updatePlant: (id: string, updates: Partial<Omit<UserPlant, 'id'>>) => void
 	removePlant: (id: string) => void
+	reorderPlants: (plantIds: string[]) => void
 
 	// Check-in actions
 	addCheckIn: (checkIn: Omit<PlantCheckIn, 'id' | 'date'>) => void
@@ -93,6 +94,15 @@ export const usePlantStore = create<PlantStore>()(
 					checkIns: state.checkIns.filter((checkIn) => checkIn.plantId !== id),
 					editHistory: state.editHistory.filter((edit) => edit.plantId !== id),
 				}))
+			},
+
+			reorderPlants: (plantIds) => {
+				set((state) => {
+					const reordered = plantIds
+						.map((id) => state.plants.find((p) => p.id === id))
+						.filter((p): p is UserPlant => p !== undefined)
+					return { plants: reordered }
+				})
 			},
 
 			addCheckIn: (checkInData) => {
@@ -186,7 +196,7 @@ export const usePlantStore = create<PlantStore>()(
 					// If last 2 check-ins showed concerning conditions
 					const lastTwo = recentCheckIns.slice(0, 2)
 					const hasConcerns = lastTwo.every((c) =>
-						c.leafCondition.some((cond) =>
+						c.leafCondition?.some((cond) =>
 							['yellowing', 'brown-tips', 'brown-edges', 'spotted', 'crispy', 'wilting'].includes(cond)
 						)
 					)

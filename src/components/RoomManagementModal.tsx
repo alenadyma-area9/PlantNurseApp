@@ -22,6 +22,7 @@ import {
 	NativeSelectRoot,
 	NativeSelectField,
 } from '@chakra-ui/react'
+import { Tooltip } from './Tooltip'
 import { useRoomStore, DEFAULT_ROOM_ID } from '../store/roomStore'
 import { usePlantStore } from '../store/plantStore'
 import type { LightLevel, WindowDirection, RoomTemperature } from '../types'
@@ -29,11 +30,12 @@ import type { LightLevel, WindowDirection, RoomTemperature } from '../types'
 interface RoomManagementModalProps {
 	isOpen: boolean
 	onClose: () => void
+	nested?: boolean // Indicates if this modal is opened from another modal
 }
 
 type ViewMode = 'list' | 'add' | 'edit'
 
-export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProps) {
+export function RoomManagementModal({ isOpen, onClose, nested = false }: RoomManagementModalProps) {
 	const rooms = useRoomStore((state) => state.rooms)
 	const addRoom = useRoomStore((state) => state.addRoom)
 	const updateRoom = useRoomStore((state) => state.updateRoom)
@@ -50,6 +52,10 @@ export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProp
 	const [temperature, setTemperature] = useState<RoomTemperature>('moderate')
 	const [humidity, setHumidity] = useState<'low' | 'medium' | 'high'>('medium')
 	const [notes, setNotes] = useState('')
+
+	// Use higher z-index when nested
+	const zIndex = nested ? 1600 : 1400
+	const backdropZIndex = nested ? 1550 : 1350
 
 	const handleAddNew = () => {
 		setViewMode('add')
@@ -143,15 +149,16 @@ export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProp
 	useEnterKey(handleEnter, isOpen)
 
 	return (
-		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} size="xl" placement="center">
-			<DialogBackdrop />
+		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} size="md" placement="center">
+			<DialogBackdrop zIndex={backdropZIndex} />
 			<DialogContent
+				maxW={{ base: '95vw', sm: '90vw', md: '500px' }}
 				maxH="90vh"
 				position="fixed"
 				top="50%"
 				left="50%"
 				transform="translate(-50%, -50%)"
-				zIndex={1400}
+				zIndex={zIndex}
 				bg="white"
 				borderRadius="lg"
 				boxShadow="xl"
@@ -169,16 +176,18 @@ export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProp
 						<VStack gap={3} align="stretch">
 							{rooms.map((room) => {
 								const plantCount = getPlantsInRoom(room.id)
+								const plantsInRoom = plants.filter((p) => p.roomId === room.id)
+								const plantNames = plantsInRoom.map((p) => p.customName).join(', ')
 								const isDefault = room.id === DEFAULT_ROOM_ID
 
 								return (
 									<Card.Root key={room.id} variant="outline">
-										<Card.Body>
+										<Card.Body p={3}>
 											<VStack align="stretch" gap={2}>
 												<HStack justify="space-between" align="start">
-													<VStack align="start" gap={1}>
+													<VStack align="start" gap={1} flex={1}>
 														<HStack>
-															<Text fontWeight="bold">{room.name}</Text>
+															<Text fontWeight="bold" fontSize="sm">{room.name}</Text>
 															{isDefault && (
 																<Badge colorScheme="blue" fontSize="xs">
 																	Default
@@ -188,20 +197,18 @@ export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProp
 														<HStack gap={2} fontSize="xs" color="gray.600" flexWrap="wrap">
 															<Text>💡 {room.lightLevel}</Text>
 															<Text>🌡️ {room.temperature}</Text>
-															{room.windowDirection && <Text>🪟 {room.windowDirection}</Text>}
-															{room.humidity && <Text>💧 {room.humidity} humidity</Text>}
 														</HStack>
-														{room.notes && (
-															<Text fontSize="xs" color="gray.500">
-																{room.notes}
-															</Text>
-														)}
 													</VStack>
 
-													<VStack gap={1}>
-														<Badge colorScheme="green" fontSize="xs">
-															{plantCount} plant{plantCount !== 1 ? 's' : ''}
-														</Badge>
+													<VStack gap={1} align="end">
+														<Tooltip
+															content={plantCount > 0 ? plantNames : 'No plants'}
+															positioning={{ placement: 'top' }}
+														>
+															<Badge colorScheme="green" fontSize="xs" cursor="help">
+																{plantCount} plant{plantCount !== 1 ? 's' : ''}
+															</Badge>
+														</Tooltip>
 														<HStack gap={1}>
 															<Button size="xs" variant="outline" onClick={() => handleEdit(room.id)}>
 																Edit

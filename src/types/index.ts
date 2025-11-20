@@ -130,9 +130,9 @@ export interface PlantCheckIn {
 	plantId: string // reference to UserPlant
 	date: string // ISO date
 
-	// Observations
-	soilMoisture: SoilMoisture
-	leafCondition: LeafCondition[]
+	// Observations (all optional - can just observe or take photo)
+	soilMoisture?: SoilMoisture
+	leafCondition?: LeafCondition[]
 	notes?: string
 
 	// Actions taken
