@@ -8,6 +8,7 @@ import {
 	DialogFooter,
 	DialogTitle,
 	DialogCloseTrigger,
+	DialogBackdrop,
 } from '@chakra-ui/react'
 import { Button, Input, VStack, Text, SimpleGrid, Card, Box, HStack, Badge, NativeSelectRoot, NativeSelectField } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
@@ -15,6 +16,7 @@ import { useRoomStore, DEFAULT_ROOM_ID } from '../store/roomStore'
 import { PLANT_DATABASE } from '../data/plantDatabase'
 import type { PlantSize, PlantCondition } from '../types'
 import { PhotoUpload } from './PhotoUpload'
+import { RoomManagementModal } from './RoomManagementModal'
 
 interface AddPlantModalProps {
 	isOpen: boolean
@@ -31,6 +33,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	const [size, setSize] = useState<PlantSize>('small')
 	const [condition, setCondition] = useState<PlantCondition>('just-added')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
+	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
 
 	const addPlant = usePlantStore((state) => state.addPlant)
 	const rooms = useRoomStore((state) => state.rooms)
@@ -90,6 +93,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
+			<DialogBackdrop />
 			<DialogContent
 				maxH={{ base: '95vh', md: '90vh' }}
 				position="fixed"
@@ -179,18 +183,29 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 								<Text fontSize="sm" fontWeight="bold" mb={2}>
 									Location:
 								</Text>
-								<NativeSelectRoot>
-									<NativeSelectField
-										value={selectedRoomId}
-										onChange={(e) => setSelectedRoomId(e.target.value)}
+								<VStack gap={2} align="stretch">
+									<NativeSelectRoot>
+										<NativeSelectField
+											value={selectedRoomId}
+											onChange={(e) => setSelectedRoomId(e.target.value)}
+										>
+											{rooms.map((room) => (
+												<option key={room.id} value={room.id}>
+													{room.name} ({room.lightLevel} light, {room.temperature})
+												</option>
+											))}
+										</NativeSelectField>
+									</NativeSelectRoot>
+									<Button
+										size="sm"
+										variant="outline"
+										colorScheme="green"
+										onClick={() => setIsRoomModalOpen(true)}
+										width="full"
 									>
-										{rooms.map((room) => (
-											<option key={room.id} value={room.id}>
-												{room.name} ({room.lightLevel} light, {room.temperature})
-											</option>
-										))}
-									</NativeSelectField>
-								</NativeSelectRoot>
+										+ Add New Room
+									</Button>
+								</VStack>
 								<Text fontSize="xs" color="gray.500" mt={1}>
 									Where will you keep this plant?
 								</Text>
@@ -275,6 +290,18 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 					)}
 				</DialogFooter>
 			</DialogContent>
+
+			{/* Room Management Modal */}
+			<RoomManagementModal
+				isOpen={isRoomModalOpen}
+				onClose={() => {
+					setIsRoomModalOpen(false)
+					// Select the newly added room if one was added
+					if (rooms.length > 0) {
+						setSelectedRoomId(rooms[rooms.length - 1].id)
+					}
+				}}
+			/>
 		</DialogRoot>
 	)
 }

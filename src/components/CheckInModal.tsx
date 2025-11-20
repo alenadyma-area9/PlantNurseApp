@@ -8,6 +8,7 @@ import {
 	DialogFooter,
 	DialogTitle,
 	DialogCloseTrigger,
+	DialogBackdrop,
 } from '@chakra-ui/react'
 import {
 	Button,
@@ -151,6 +152,7 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
+			<DialogBackdrop />
 			<DialogContent
 				maxH="90vh"
 				position="fixed"

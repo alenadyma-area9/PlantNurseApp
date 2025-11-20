@@ -142,6 +142,24 @@ export interface PlantCheckIn {
 	photoUrl?: string
 }
 
+// Plant edit history
+export interface PlantEditHistory {
+	id: string
+	plantId: string
+	date: string // ISO date
+	changes: {
+		field: string
+		oldValue: string
+		newValue: string
+	}[]
+}
+
+// Unified history entry (for display)
+export type PlantHistoryEntry =
+	| { type: 'check-in'; data: PlantCheckIn }
+	| { type: 'edit'; data: PlantEditHistory }
+	| { type: 'created'; date: string }
+
 // Plant identification questions
 export interface IdentificationQuestion {
 	id: string

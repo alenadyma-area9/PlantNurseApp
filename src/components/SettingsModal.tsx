@@ -6,6 +6,7 @@ import {
 	DialogFooter,
 	DialogTitle,
 	DialogCloseTrigger,
+	DialogBackdrop,
 } from '@chakra-ui/react'
 import { Button, VStack, Text, Box, HStack } from '@chakra-ui/react'
 import { useSettingsStore } from '../store/settingsStore'
@@ -28,6 +29,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} placement="center">
+			<DialogBackdrop />
 			<DialogContent
 				position="fixed"
 				top="50%"

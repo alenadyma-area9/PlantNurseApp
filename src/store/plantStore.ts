@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { UserPlant, PlantCheckIn, PlantStatus } from '../types'
+import type { UserPlant, PlantCheckIn, PlantStatus, PlantEditHistory, PlantHistoryEntry } from '../types'
 
 interface PlantStore {
 	// User's plants
@@ -8,6 +8,9 @@ interface PlantStore {
 
 	// Check-in history
 	checkIns: PlantCheckIn[]
+
+	// Edit history
+	editHistory: PlantEditHistory[]
 
 	// Plant actions
 	addPlant: (plant: Omit<UserPlant, 'id' | 'dateAdded'>) => void
@@ -19,6 +22,9 @@ interface PlantStore {
 	getPlantCheckIns: (plantId: string) => PlantCheckIn[]
 	getLastCheckIn: (plantId: string) => PlantCheckIn | undefined
 
+	// History
+	getPlantHistory: (plantId: string) => PlantHistoryEntry[]
+
 	// Utility
 	getPlantStatus: (plantId: string, speciesCheckFrequency: number) => PlantStatus
 	getDaysSinceLastCheckIn: (plantId: string) => number
@@ -29,6 +35,7 @@ export const usePlantStore = create<PlantStore>()(
 		(set, get) => ({
 			plants: [],
 			checkIns: [],
+			editHistory: [],
 
 			addPlant: (plantData) => {
 				const newPlant: UserPlant = {
@@ -42,6 +49,36 @@ export const usePlantStore = create<PlantStore>()(
 			},
 
 			updatePlant: (id, updates) => {
+				const plant = get().plants.find((p) => p.id === id)
+				if (!plant) return
+
+				// Track changes for history
+				const changes: PlantEditHistory['changes'] = []
+				Object.entries(updates).forEach(([field, newValue]) => {
+					const oldValue = plant[field as keyof UserPlant]
+					if (oldValue !== newValue && field !== 'id' && field !== 'dateAdded') {
+						changes.push({
+							field,
+							oldValue: String(oldValue || ''),
+							newValue: String(newValue || ''),
+						})
+					}
+				})
+
+				// Add to edit history if there are changes
+				if (changes.length > 0) {
+					const editEntry: PlantEditHistory = {
+						id: crypto.randomUUID(),
+						plantId: id,
+						date: new Date().toISOString(),
+						changes,
+					}
+					set((state) => ({
+						editHistory: [...state.editHistory, editEntry],
+					}))
+				}
+
+				// Update the plant
 				set((state) => ({
 					plants: state.plants.map((plant) =>
 						plant.id === id ? { ...plant, ...updates } : plant
@@ -52,8 +89,9 @@ export const usePlantStore = create<PlantStore>()(
 			removePlant: (id) => {
 				set((state) => ({
 					plants: state.plants.filter((plant) => plant.id !== id),
-					// Also remove associated check-ins
+					// Also remove associated check-ins and edit history
 					checkIns: state.checkIns.filter((checkIn) => checkIn.plantId !== id),
+					editHistory: state.editHistory.filter((edit) => edit.plantId !== id),
 				}))
 			},
 
@@ -79,6 +117,36 @@ export const usePlantStore = create<PlantStore>()(
 			getLastCheckIn: (plantId) => {
 				const checkIns = get().getPlantCheckIns(plantId)
 				return checkIns[0] // Most recent
+			},
+
+			getPlantHistory: (plantId) => {
+				const plant = get().plants.find((p) => p.id === plantId)
+				const checkIns = get().checkIns.filter((c) => c.plantId === plantId)
+				const edits = get().editHistory.filter((e) => e.plantId === plantId)
+
+				const history: PlantHistoryEntry[] = []
+
+				// Add plant creation
+				if (plant) {
+					history.push({ type: 'created', date: plant.dateAdded })
+				}
+
+				// Add check-ins
+				checkIns.forEach((checkIn) => {
+					history.push({ type: 'check-in', data: checkIn })
+				})
+
+				// Add edits
+				edits.forEach((edit) => {
+					history.push({ type: 'edit', data: edit })
+				})
+
+				// Sort by date descending (most recent first)
+				return history.sort((a, b) => {
+					const dateA = a.type === 'created' ? a.date : a.data.date
+					const dateB = b.type === 'created' ? b.date : b.data.date
+					return new Date(dateB).getTime() - new Date(dateA).getTime()
+				})
 			},
 
 			getDaysSinceLastCheckIn: (plantId) => {

@@ -8,6 +8,7 @@ import {
 	DialogFooter,
 	DialogTitle,
 	DialogCloseTrigger,
+	DialogBackdrop,
 } from '@chakra-ui/react'
 import {
 	Button,
@@ -79,22 +80,24 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} placement="center">
+			<DialogBackdrop zIndex={1450} />
 			<DialogContent
+				maxH={{ base: '95vh', md: '90vh' }}
 				position="fixed"
 				top="50%"
 				left="50%"
 				transform="translate(-50%, -50%)"
-				zIndex={1400}
+				zIndex={1500}
 				bg="white"
 				borderRadius="lg"
 				boxShadow="xl"
 			>
 				<DialogHeader>
-					<DialogTitle>Edit {plant.customName}</DialogTitle>
-					<DialogCloseTrigger />
+				  <DialogTitle>Edit {plant.customName}</DialogTitle>
+				  <DialogCloseTrigger />
 				</DialogHeader>
 
-				<DialogBody>
+				<DialogBody overflowY="auto" maxH={{ base: '70vh', md: '60vh' }}>
 					<VStack gap={4} align="stretch">
 						<Box>
 							<Text fontSize="sm" fontWeight="bold" mb={2}>

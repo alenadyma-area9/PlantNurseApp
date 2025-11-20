@@ -5,11 +5,12 @@ import { useRoomStore } from '../store/roomStore'
 import { getPlantById } from '../data/plantDatabase'
 import { CheckInModal } from './CheckInModal'
 import { PlantDetailsModal } from './PlantDetailsModal'
+import { formatTimeAgo } from '../utils/timeUtils'
 
 export function PlantList() {
 	const plants = usePlantStore((state) => state.plants)
 	const getPlantStatus = usePlantStore((state) => state.getPlantStatus)
-	const getDaysSinceLastCheckIn = usePlantStore((state) => state.getDaysSinceLastCheckIn)
+	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
 	const getRoom = useRoomStore((state) => state.getRoom)
 
 	const [checkInPlantId, setCheckInPlantId] = useState<string | null>(null)
@@ -32,13 +33,13 @@ export function PlantList() {
 	return (
 		<>
 			<VStack gap={4} align="stretch">
-				{plants.map((plant) => {
-					const species = getPlantById(plant.speciesId)
-					const room = getRoom(plant.roomId)
-					if (!species) return null
+				 {plants.map((plant) => {
+				const species = getPlantById(plant.speciesId)
+				const room = getRoom(plant.roomId)
+				if (!species) return null
 
-					const status = getPlantStatus(plant.id, species.watering.checkFrequency)
-					const daysSince = getDaysSinceLastCheckIn(plant.id)
+				const status = getPlantStatus(plant.id, species.watering.checkFrequency)
+				const checkIns = getPlantCheckIns(plant.id)
 
 					// Status colors
 					const statusConfig = {
@@ -139,7 +140,7 @@ export function PlantList() {
 										borderColor="gray.100"
 									>
 										<Text>
-											Last check: {daysSince === 0 ? 'Today' : `${daysSince} day${daysSince !== 1 ? 's' : ''} ago`}
+											Last check: {checkIns.length > 0 ? formatTimeAgo(checkIns[0].date) : 'Never'}
 										</Text>
 										{species.watering.checkFrequency && (
 											<Text>

@@ -8,6 +8,7 @@ import {
 	DialogFooter,
 	DialogTitle,
 	DialogCloseTrigger,
+	DialogBackdrop,
 } from '@chakra-ui/react'
 import {
 	Button,
@@ -143,6 +144,7 @@ export function RoomManagementModal({ isOpen, onClose }: RoomManagementModalProp
 
 	return (
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} size="xl" placement="center">
+			<DialogBackdrop />
 			<DialogContent
 				maxH="90vh"
 				position="fixed"
