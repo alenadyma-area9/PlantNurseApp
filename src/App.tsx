@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Container, Heading, VStack, HStack, Button, IconButton } from '@chakra-ui/react'
+import { Box, Container, Heading, VStack } from '@chakra-ui/react'
 import { PlantList } from './components/PlantList'
 import { AddPlantButton } from './components/AddPlantButton'
 import { SettingsModal } from './components/SettingsModal'
@@ -21,56 +21,7 @@ function App() {
 			<Container maxW="container.lg" py={{ base: 4, md: 8 }} px={{ base: 3, md: 4 }}>
 				<VStack gap={{ base: 4, md: 6 }} align="stretch">
 					{/* Header */}
-					<Box textAlign="center" position="relative">
-						{/* Action Buttons - Top Right */}
-						<HStack
-							position="absolute"
-							top={0}
-							right={0}
-							gap={2}
-							display={{ base: 'none', sm: 'flex' }}
-						>
-							<Button
-								size="sm"
-								variant="ghost"
-								onClick={() => setIsRoomManagementOpen(true)}
-							>
-								🏠 Rooms
-							</Button>
-							<Button
-								size="sm"
-								variant="ghost"
-								onClick={() => setIsSettingsOpen(true)}
-							>
-								⚙️ Settings
-							</Button>
-						</HStack>
-
-						{/* Mobile Action Buttons */}
-						<HStack
-							justify="center"
-							gap={2}
-							mb={2}
-							display={{ base: 'flex', sm: 'none' }}
-						>
-							<IconButton
-								size="sm"
-								variant="ghost"
-								onClick={() => setIsRoomManagementOpen(true)}
-								aria-label="Room Management"
-							>
-								🏠
-							</IconButton>
-							<IconButton
-								size="sm"
-								variant="ghost"
-								onClick={() => setIsSettingsOpen(true)}
-								aria-label="Settings"
-							>
-								⚙️
-							</IconButton>
-						</HStack>
-
+					<Box textAlign="center">
 						<Heading size={{ base: 'xl', md: '2xl' }} color="green.600" mb={2}>
 							🌱 PlantNurse
 						</Heading>
@@ -87,8 +38,11 @@ function App() {
 					{/* Add Plant Button */}
 					<AddPlantButton />
 
-					{/* Plant List */}
-					<PlantList />
+					{/* Plant List - Now includes view selector, settings, and room management */}
+					<PlantList
+						onOpenSettings={() => setIsSettingsOpen(true)}
+						onOpenRoomManagement={() => setIsRoomManagementOpen(true)}
+					/>
 				</VStack>
 			</Container>
 
