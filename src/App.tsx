@@ -38,70 +38,52 @@ function App() {
 					</Box>
 
 					{/* Controls Bar - Add, View, Settings */}
-					<HStack gap={2} flexWrap={{ base: 'wrap', md: 'nowrap' }}>
+					<HStack gap={2} flexWrap="nowrap" justify="space-between">
 						{/* Add Plant Button */}
 						<Button
 							colorScheme="green"
-							size={{ base: 'md', md: 'md' }}
+							size="md"
 							onClick={() => setIsAddPlantOpen(true)}
 							flexShrink={0}
 						>
-							+ Add Plant
+							+ Add
 						</Button>
 
 						{/* View Dropdown */}
-						<NativeSelectRoot size={{ base: 'md', md: 'md' }} flex={1} minW={{ base: 'full', md: '200px' }}>
-							<NativeSelectField
-								value={viewMode}
-								onChange={(e) => setViewMode(e.target.value as ViewMode)}
+						<Box flex={1} maxW={{ base: '180px', sm: '200px' }}>
+							<NativeSelectRoot size="md">
+								<NativeSelectField
+									value={viewMode}
+									onChange={(e) => setViewMode(e.target.value as ViewMode)}
+								>
+									<option value="all">📋 All</option>
+									<option value="by-room">🏠 Room</option>
+									<option value="by-health">💊 Health</option>
+									<option value="by-next-check">📅 Next Check</option>
+									<option value="by-care-level">🎓 Care Level</option>
+								</NativeSelectField>
+							</NativeSelectRoot>
+						</Box>
+
+						{/* Settings Icons */}
+						<HStack gap={2} flexShrink={0}>
+							<IconButton
+								size="md"
+								variant="outline"
+								onClick={() => setIsRoomManagementOpen(true)}
+								aria-label="Room Management"
 							>
-								<option value="all">📋 All Plants</option>
-								<option value="by-room">🏠 By Room</option>
-								<option value="by-health">💊 By Health</option>
-								<option value="by-next-check">📅 By Next Check</option>
-								<option value="by-care-level">🎓 By Care Level</option>
-							</NativeSelectField>
-						</NativeSelectRoot>
-
-						{/* Settings Buttons - Desktop */}
-						<Button
-							size="md"
-							variant="outline"
-							onClick={() => setIsRoomManagementOpen(true)}
-							display={{ base: 'none', md: 'flex' }}
-							flexShrink={0}
-						>
-							🏠
-						</Button>
-						<Button
-							size="md"
-							variant="outline"
-							onClick={() => setIsSettingsOpen(true)}
-							display={{ base: 'none', md: 'flex' }}
-							flexShrink={0}
-						>
-							⚙️
-						</Button>
-
-						{/* Settings Buttons - Mobile */}
-						<IconButton
-							size="md"
-							variant="outline"
-							onClick={() => setIsRoomManagementOpen(true)}
-							display={{ base: 'flex', md: 'none' }}
-							aria-label="Room Management"
-						>
-							🏠
-						</IconButton>
-						<IconButton
-							size="md"
-							variant="outline"
-							onClick={() => setIsSettingsOpen(true)}
-							display={{ base: 'flex', md: 'none' }}
-							aria-label="Settings"
-						>
-							⚙️
-						</IconButton>
+								🏠
+							</IconButton>
+							<IconButton
+								size="md"
+								variant="outline"
+								onClick={() => setIsSettingsOpen(true)}
+								aria-label="Settings"
+							>
+								⚙️
+							</IconButton>
+						</HStack>
 					</HStack>
 
 					{/* Plant List */}
