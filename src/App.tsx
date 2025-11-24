@@ -49,9 +49,10 @@ function App() {
 							+ Add
 						</Button>
 
-						{/* View Dropdown */}
-						<Box flex={1} maxW={{ base: '180px', sm: '200px' }}>
-							<NativeSelectRoot size="md">
+						{/* Right side controls: View Dropdown + Settings Icons */}
+						<HStack gap={2} flexShrink={0}>
+							{/* View Dropdown */}
+							<NativeSelectRoot size="md" width={{ base: '140px', sm: '160px' }}>
 								<NativeSelectField
 									value={viewMode}
 									onChange={(e) => setViewMode(e.target.value as ViewMode)}
@@ -63,10 +64,8 @@ function App() {
 									<option value="by-care-level">🎓 Care Level</option>
 								</NativeSelectField>
 							</NativeSelectRoot>
-						</Box>
 
-						{/* Settings Icons */}
-						<HStack gap={2} flexShrink={0}>
+							{/* Settings Icons */}
 							<IconButton
 								size="md"
 								variant="outline"
