@@ -58,7 +58,6 @@ function App() {
 								<option value="all">📋 All Plants</option>
 								<option value="by-room">🏠 By Room</option>
 								<option value="by-health">💊 By Health</option>
-								<option value="by-priority">🔴 By Priority</option>
 								<option value="by-next-check">📅 By Next Check</option>
 								<option value="by-care-level">🎓 By Care Level</option>
 							</NativeSelectField>

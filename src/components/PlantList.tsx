@@ -24,7 +24,7 @@ import { CheckInModal } from './CheckInModal'
 import { PlantDetailsModal } from './PlantDetailsModal'
 import { formatTimeAgo } from '../utils/timeUtils'
 
-export type ViewMode = 'all' | 'by-room' | 'by-health' | 'by-priority' | 'by-next-check' | 'by-care-level'
+export type ViewMode = 'all' | 'by-room' | 'by-health' | 'by-next-check' | 'by-care-level'
 
 interface SortablePlantCardProps {
 	plant: any
@@ -336,16 +336,6 @@ export function PlantList({ viewMode }: PlantListProps) {
 			organizedPlants = [{ title: 'By Health (Worse → Better)', plants: sortedByHealth }]
 			break
 
-		case 'by-priority':
-			// Sort by check-in priority
-			const priorityOrder = { 'needs-attention': 0, 'may-have-issue': 1, 'check-soon': 2, 'recently-checked': 3 }
-			const sortedByPriority = [...plantsWithData].sort((a, b) => {
-				return priorityOrder[a.status as keyof typeof priorityOrder] -
-				       priorityOrder[b.status as keyof typeof priorityOrder]
-			})
-			organizedPlants = [{ title: 'By Check Priority', plants: sortedByPriority }]
-			break
-
 		case 'by-next-check':
 			// Sort by next check date (soonest first)
 			const sortedByNextCheck = [...plantsWithData].sort((a, b) => {
@@ -379,12 +369,6 @@ export function PlantList({ viewMode }: PlantListProps) {
 
 	return (
 		<>
-			{viewMode !== 'all' && (
-				<Text fontSize="xs" color="gray.500" mb={3} textAlign="center">
-					💡 Drag and drop is only available in "All" view
-				</Text>
-			)}
-
 			{/* Plant Lists */}
 			<VStack gap={6} align="stretch">
 				{organizedPlants.map((group, groupIndex) => (
