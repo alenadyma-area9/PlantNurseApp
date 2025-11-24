@@ -10,9 +10,10 @@ import {
 	DialogCloseTrigger,
 	DialogBackdrop,
 } from '@chakra-ui/react'
-import { Button, Input, VStack, Text, SimpleGrid, Card, Box, HStack, Badge, NativeSelectRoot, NativeSelectField } from '@chakra-ui/react'
+import { Button, Input, VStack, Text, SimpleGrid, Card, Box, HStack, Badge, NativeSelectRoot, NativeSelectField, Textarea } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore, DEFAULT_ROOM_ID } from '../store/roomStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { PLANT_DATABASE } from '../data/plantDatabase'
 import type { PlantSize, PlantCondition } from '../types'
 import { PhotoUpload } from './PhotoUpload'
@@ -33,12 +34,14 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	const [customName, setCustomName] = useState('')
 	const [size, setSize] = useState<PlantSize>('small')
 	const [condition, setCondition] = useState<PlantCondition>('just-added')
+	const [notes, setNotes] = useState('')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
 	const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
 
 	const addPlant = usePlantStore((state) => state.addPlant)
 	const rooms = useRoomStore((state) => state.rooms)
+	const distanceUnit = useSettingsStore((state) => state.distanceUnit)
 
 	// Set default room when modal opens
 	useEffect(() => {
@@ -65,6 +68,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 				size,
 				condition,
 				photoUrl,
+				notes: notes.trim() || undefined,
 			})
 			handleClose()
 		}
@@ -77,6 +81,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 		setCustomName('')
 		setSize('small')
 		setCondition('just-added')
+		setNotes('')
 		setPhotoUrl(undefined)
 		onClose()
 	}
@@ -127,53 +132,95 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 					<DialogBody overflowY="auto" maxH={{ base: '70vh', md: '60vh' }}>
 						{/* STEP 1: Select Plant */}
 						{step === 'select-plant' && (
-							<VStack gap={4} align="stretch">
-								<Text fontSize="sm" color="gray.600">
-									Select your plant type:
-								</Text>
+							<VStack gap={3} align="stretch">
+								<Box>
+									<Text fontSize="sm" fontWeight="medium" mb={1}>
+										Select your plant type:
+									</Text>
+									<Text fontSize="xs" color="gray.500">
+										Choose from 15 beginner-friendly to advanced plants
+									</Text>
+								</Box>
 
-								<SimpleGrid columns={{ base: 1, sm: 2 }} gap={3}>
+								<SimpleGrid columns={{ base: 1, sm: 2 }} gap={2.5}>
 									{PLANT_DATABASE.map((plant) => (
 										<Card.Root
 											key={plant.id}
 											variant="outline"
 											cursor="pointer"
 											onClick={() => handleSelectPlant(plant.id)}
-											_hover={{ borderColor: 'green.400', shadow: 'md' }}
+											_hover={{ borderColor: 'green.400', shadow: 'md', bg: 'green.50' }}
+											transition="all 0.2s"
 										>
 											<Card.Body p={3}>
-												<VStack align="start" gap={1}>
-													<Text fontWeight="bold" fontSize="sm">
-														{plant.commonName}
-													</Text>
-													<Text fontSize="xs" color="gray.600">
-														{plant.scientificName}
-													</Text>
-													<HStack>
-														<Badge colorScheme="green" fontSize="xs">
+												<VStack align="stretch" gap={2} width="full">
+													{/* Header: Name + Care Level */}
+													<HStack justify="space-between" align="start">
+														<Box flex={1} minW={0}>
+															<Text fontWeight="bold" fontSize="sm" lineHeight="1.2">
+																{plant.commonName}
+															</Text>
+															<Text fontSize="2xs" color="gray.500" lineClamp={1} mt={0.5}>
+																{plant.scientificName}
+															</Text>
+														</Box>
+														<Badge colorScheme="green" fontSize="2xs" px={2} flexShrink={0} alignSelf="start">
 															{plant.careLevel}
 														</Badge>
-														{plant.petSafe && (
-															<Badge colorScheme="blue" fontSize="xs">
-																Pet safe
-															</Badge>
-														)}
 													</HStack>
+
+													{/* Labeled Characteristics */}
+													<VStack align="stretch" gap={0.5} fontSize="xs">
+														<HStack gap={1}>
+															<Text color="gray.500" minW="50px" fontWeight="medium">Leaves:</Text>
+															<Text color="gray.700" textTransform="capitalize">
+																{plant.characteristics.leafShape.replace('-', ' ')}, {plant.characteristics.leafSize}
+															</Text>
+														</HStack>
+														<HStack gap={1}>
+															<Text color="gray.500" minW="50px" fontWeight="medium">Growth:</Text>
+															<Text color="gray.700" textTransform="capitalize">
+																{plant.characteristics.growthPattern}
+															</Text>
+														</HStack>
+														{plant.characteristics.specialFeatures.length > 0 && (
+															<HStack gap={1} align="start">
+																<Text color="gray.500" minW="50px" fontWeight="medium">Features:</Text>
+																<HStack flexWrap="wrap" gap={1}>
+																	{plant.characteristics.specialFeatures.map((feature) => (
+																		<Badge key={feature} colorScheme="purple" fontSize="2xs" px={1.5}>
+																			{feature}
+																		</Badge>
+																	))}
+																	{plant.petSafe && (
+																		<Badge colorScheme="blue" fontSize="2xs" px={1.5}>
+																			🐾 pet safe
+																		</Badge>
+																	)}
+																</HStack>
+															</HStack>
+														)}
+													</VStack>
 												</VStack>
 											</Card.Body>
 										</Card.Root>
 									))}
 								</SimpleGrid>
 
-								<Box borderTop="1px solid" borderColor="gray.200" pt={4} mt={2}>
+								<Box borderTop="1px solid" borderColor="gray.200" pt={3} mt={1}>
 									<Button
 										variant="outline"
 										colorScheme="blue"
 										width="full"
 										onClick={handleCustomPlantClick}
-										size="md"
+										size="sm"
+										height="auto"
+										py={3}
 									>
-										🌱 Can't find your plant? Add a custom one
+										<VStack gap={0.5}>
+											<Text fontSize="sm" fontWeight="medium">🌱 Can't find your plant?</Text>
+											<Text fontSize="xs" fontWeight="normal" color="blue.600">Add a custom one</Text>
+										</VStack>
 									</Button>
 								</Box>
 							</VStack>
@@ -240,7 +287,9 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 										Current size:
 									</Text>
 									<Text fontSize="xs" color="gray.500" mb={2}>
-										Approximate pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)
+										{distanceUnit === 'cm'
+											? 'Approximate pot diameter: Small (10-15cm), Medium (15-25cm), Large (25cm+)'
+											: 'Approximate pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)'}
 									</Text>
 									<HStack gap={2}>
 										{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
@@ -283,6 +332,22 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 											</Button>
 										))}
 									</VStack>
+								</Box>
+
+								<Box>
+									<Text fontSize="sm" fontWeight="bold" mb={2}>
+										Notes (optional):
+									</Text>
+									<Textarea
+										placeholder="e.g., Gift from mom, bought at local nursery, special memories..."
+										value={notes}
+										onChange={(e) => setNotes(e.target.value)}
+										rows={2}
+										fontSize="sm"
+									/>
+									<Text fontSize="xs" color="gray.500" mt={1}>
+										Personal notes about this plant
+									</Text>
 								</Box>
 
 								<Box>

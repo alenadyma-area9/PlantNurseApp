@@ -36,3 +36,22 @@ export function useEnterKey(callback: () => void, enabled: boolean = true) {
 export function useEscapeKey(callback: () => void, enabled: boolean = true) {
 	useKeyboardShortcut('Escape', callback, enabled)
 }
+
+/**
+ * Hook to handle Ctrl+Enter for form submission
+ */
+export function useCtrlEnterKey(callback: () => void, enabled: boolean = true) {
+	useEffect(() => {
+		if (!enabled) return
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+				event.preventDefault()
+				callback()
+			}
+		}
+
+		window.addEventListener('keydown', handleKeyDown)
+		return () => window.removeEventListener('keydown', handleKeyDown)
+	}, [callback, enabled])
+}

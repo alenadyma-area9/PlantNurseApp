@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Box, Container, Heading, VStack, HStack, Button, NativeSelectRoot, NativeSelectField, IconButton } from '@chakra-ui/react'
+import { Box, Container, Heading, VStack, HStack, Button, NativeSelectRoot, NativeSelectField, IconButton, Toaster, Toast } from '@chakra-ui/react'
 import { PlantList, type ViewMode } from './components/PlantList'
 import { AddPlantModal } from './components/AddPlantModal'
 import { SettingsModal } from './components/SettingsModal'
 import { RoomManagementModal } from './components/RoomManagementModal'
 import { useRoomStore } from './store/roomStore'
+import { toaster } from './main'
 
 function App() {
 	const initializeDefaultRoom = useRoomStore((state) => state.initializeDefaultRoom)
@@ -44,22 +45,28 @@ function App() {
 						{/* Right side controls: View Dropdown + Settings Icons */}
 						<HStack gap={2} flexShrink={0}>
 							{/* View Dropdown */}
-							<NativeSelectRoot size="md" width={{ base: '140px', sm: '160px' }}>
+							<NativeSelectRoot size={{ base: 'sm', md: 'md' }} width={{ base: '120px', sm: '140px', md: '160px' }}>
 								<NativeSelectField
 									value={viewMode}
 									onChange={(e) => setViewMode(e.target.value as ViewMode)}
+									borderWidth="1px"
+									borderColor="gray.300"
+									borderRadius="md"
+									fontSize={{ base: 'xs', md: 'sm' }}
+									_hover={{ borderColor: 'gray.400' }}
+									_focus={{ borderColor: 'green.500', boxShadow: '0 0 0 1px var(--chakra-colors-green-500)' }}
 								>
 									<option value="all">📋 All</option>
 									<option value="by-room">🏠 Room</option>
 									<option value="by-health">💊 Health</option>
-									<option value="by-next-check">📅 Next Check</option>
-									<option value="by-care-level">🎓 Care Level</option>
+									<option value="by-next-check">📅 Check</option>
+									<option value="by-care-level">🎓 Level</option>
 								</NativeSelectField>
 							</NativeSelectRoot>
 
 							{/* Settings Icons */}
 							<IconButton
-								size="md"
+								size={{ base: 'sm', md: 'md' }}
 								variant="outline"
 								onClick={() => setIsRoomManagementOpen(true)}
 								aria-label="Room Management"
@@ -67,7 +74,7 @@ function App() {
 								🏠
 							</IconButton>
 							<IconButton
-								size="md"
+								size={{ base: 'sm', md: 'md' }}
 								variant="outline"
 								onClick={() => setIsSettingsOpen(true)}
 								aria-label="Settings"
@@ -99,6 +106,24 @@ function App() {
 				isOpen={isRoomManagementOpen}
 				onClose={() => setIsRoomManagementOpen(false)}
 			/>
+
+			{/* Toast Notifications */}
+			<Toaster toaster={toaster}>
+				{(toast) => (
+					<Toast.Root
+						key={toast.id}
+						bg={toast.type === 'success' ? 'green.500' : toast.type === 'warning' ? 'yellow.500' : 'red.500'}
+						color="white"
+						borderRadius="md"
+						p={4}
+						boxShadow="lg"
+					>
+						{toast.title && <Toast.Title fontWeight="bold">{toast.title}</Toast.Title>}
+						{toast.description && <Toast.Description mt={1}>{toast.description}</Toast.Description>}
+						<Toast.CloseTrigger color="white" />
+					</Toast.Root>
+				)}
+			</Toaster>
 		</Box>
 	)
 }

@@ -27,8 +27,9 @@ import { useSettingsStore } from '../store/settingsStore'
 import { getPlantById } from '../data/plantDatabase'
 import { EditPlantModal } from './EditPlantModal'
 import { PhotoUpload } from './PhotoUpload'
-import { formatTemperatureRange, formatDistance } from '../utils/unitConversion'
+import { formatTemperatureRange, formatDistance, formatIdealTemperature } from '../utils/unitConversion'
 import type { SoilMoisture, LeafCondition, CheckInAction, PlantCondition } from '../types'
+import { toaster } from '../main'
 
 interface PlantDetailsModalProps {
 	plantId: string
@@ -41,6 +42,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const removePlant = usePlantStore((state) => state.removePlant)
 	const getPlantHistory = usePlantStore((state) => state.getPlantHistory)
 	const getDaysSinceLastCheckIn = usePlantStore((state) => state.getDaysSinceLastCheckIn)
+	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
 	const addCheckIn = usePlantStore((state) => state.addCheckIn)
 	const updatePlant = usePlantStore((state) => state.updatePlant)
 	const getRoom = useRoomStore((state) => state.getRoom)
@@ -81,7 +83,12 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 		const conditionChanged = plantCondition !== plant.condition
 
 		if (!hasObservation && !conditionChanged) {
-			alert('Please update the plant condition or add at least one observation')
+			toaster.create({
+				title: 'Nothing to save',
+				description: 'Please update the plant condition or add at least one observation',
+				type: 'warning',
+				duration: 5000,
+			})
 			return
 		}
 
@@ -99,16 +106,41 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 			updatePlant(plant.id, { condition: plantCondition })
 		}
 
-		// Reset form and switch to history tab
+		// If plant has no photo yet, use the check-in photo as plant photo
+		if (!plant.photoUrl && photoUrl) {
+			updatePlant(plant.id, { photoUrl })
+		}
+
+		// Check if problems were reported and we have solutions
+		const hasProblems = leafConditions.length > 0 ||
+			soilMoisture === 'soggy' || soilMoisture === 'wet' || soilMoisture === 'bone-dry' ||
+			plantCondition === 'struggling' || plantCondition === 'needs-attention'
+
+		// Reset form
 		setSoilMoisture(null)
 		setLeafConditions([])
 		setActions([])
 		setNotes('')
 		setPhotoUrl(undefined)
 		setPlantCondition(plant.condition)
-		setActiveTab('history')
 
-		alert('✅ Check-in saved!')
+		// Switch to appropriate tab and show success message
+		if (hasProblems && !plant.isCustomPlant) {
+			setActiveTab('tips')
+			toaster.create({
+				title: 'Check-in saved!',
+				description: 'See the Tips tab for suggested solutions.',
+				type: 'success',
+				duration: 5000,
+			})
+		} else {
+			setActiveTab('history')
+			toaster.create({
+				title: 'Check-in saved!',
+				type: 'success',
+				duration: 5000,
+			})
+		}
 	}
 
 	const handleToggleLeafCondition = (condition: LeafCondition) => {
@@ -118,6 +150,62 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 				: [...prev, condition]
 		)
 	}
+
+	// Simple smart issue detection
+	const getRelevantIssues = () => {
+		if (!species || plant.isCustomPlant) return []
+
+		const checkIns = getPlantCheckIns(plant.id)
+		if (checkIns.length === 0) return []
+
+		// Get last check-in only
+		const lastCheckIn = checkIns[0]
+		const matchedIssues: typeof species.commonIssues = []
+
+		// Simple direct matching
+		species.commonIssues.forEach(issue => {
+			const symptom = issue.symptom.toLowerCase()
+
+			// Match soil moisture problems
+			if (lastCheckIn.soilMoisture === 'soggy' || lastCheckIn.soilMoisture === 'wet') {
+				if (symptom.includes('yellow') || symptom.includes('mushy') || symptom.includes('rot')) {
+					matchedIssues.push(issue)
+					return
+				}
+			}
+
+			// Match leaf conditions
+			lastCheckIn.leafCondition?.forEach(condition => {
+				if (condition === 'yellowing' && symptom.includes('yellow')) {
+					matchedIssues.push(issue)
+				}
+				else if (condition === 'brown-tips' && symptom.includes('brown') && symptom.includes('tip')) {
+					matchedIssues.push(issue)
+				}
+				else if (condition === 'brown-edges' && symptom.includes('brown') && symptom.includes('edge')) {
+					matchedIssues.push(issue)
+				}
+				else if (condition === 'drooping' && symptom.includes('droop')) {
+					matchedIssues.push(issue)
+				}
+				else if (condition === 'wilting' && symptom.includes('wilt')) {
+					matchedIssues.push(issue)
+				}
+				else if (condition === 'spotted' && symptom.includes('spot')) {
+					matchedIssues.push(issue)
+				}
+				else if (condition === 'crispy' && (symptom.includes('crisp') || symptom.includes('dry'))) {
+					matchedIssues.push(issue)
+				}
+			})
+		})
+
+		// Remove duplicates
+		return Array.from(new Set(matchedIssues))
+	}
+
+	const relevantIssues = plant.isCustomPlant ? [] : getRelevantIssues()
+	const hasRelevantIssues = relevantIssues.length > 0
 
 	const handleToggleAction = (action: CheckInAction) => {
 		setActions((prev) =>
@@ -257,14 +345,9 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 													{plant.customScientificName}
 												</Text>
 											)}
-											<HStack flexWrap="wrap" gap={2}>
-												<Badge colorScheme="blue" fontSize="xs">
-													🌱 Custom plant
-												</Badge>
-												<Badge colorScheme="green" fontSize="xs">
-													{plant.size}
-												</Badge>
-											</HStack>
+											<Badge colorScheme="blue" fontSize="xs" width="fit-content">
+												🌱 Custom plant
+											</Badge>
 										</>
 									) : (
 										<>
@@ -273,14 +356,13 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 											</Text>
 											<HStack flexWrap="wrap" gap={2}>
 												<Badge colorScheme="green" fontSize="xs">
-													{species?.careLevel}
-												</Badge>
-												<Badge colorScheme="blue" fontSize="xs">
-													{plant.size}
+													{species?.careLevel === 'beginner' ? '🌱 Easy care' :
+													 species?.careLevel === 'intermediate' ? '🌿 Moderate care' :
+													 '🔥 Needs attention'}
 												</Badge>
 												{species?.petSafe && (
-													<Badge colorScheme="purple" fontSize="xs">
-														Pet safe
+													<Badge colorScheme="blue" fontSize="xs">
+														🐾 Pet safe
 													</Badge>
 												)}
 											</HStack>
@@ -292,6 +374,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 											<HStack justify="space-between">
 												<Text color="gray.600">Location:</Text>
 												<Text fontWeight="medium">{room?.name || 'Unknown'}</Text>
+											</HStack>
+											<HStack justify="space-between">
+												<Text color="gray.600">Size:</Text>
+												<Text fontWeight="medium" textTransform="capitalize">{plant.size}</Text>
 											</HStack>
 											<HStack justify="space-between">
 												<Text color="gray.600">Last check-in:</Text>
@@ -310,38 +396,50 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 							</Box>
 
 							{/* Tab Buttons */}
-							<HStack gap={2} borderBottomWidth={1} pb={2} flexWrap="wrap">
+							<HStack gap={{ base: 1, md: 2 }} borderBottomWidth={1} pb={2} flexWrap="nowrap" overflowX="auto">
 								<Button
-									size="sm"
+									size={{ base: 'xs', md: 'sm' }}
 									variant={activeTab === 'care' ? 'solid' : 'ghost'}
 									colorScheme={activeTab === 'care' ? 'green' : 'gray'}
 									onClick={() => setActiveTab('care')}
+									flexShrink={0}
 								>
-									Care Guide
+									<Text display={{ base: 'none', md: 'block' }}>Care Guide</Text>
+									<Text display={{ base: 'block', md: 'none' }}>Care</Text>
 								</Button>
 								<Button
-									size="sm"
+									size={{ base: 'xs', md: 'sm' }}
 									variant={activeTab === 'check-in' ? 'solid' : 'ghost'}
 									colorScheme={activeTab === 'check-in' ? 'green' : 'gray'}
 									onClick={() => setActiveTab('check-in')}
+									flexShrink={0}
 								>
-									✓ Check-in
+									✓ <Text display={{ base: 'none', sm: 'inline' }}>Check-in</Text>
 								</Button>
 								<Button
-									size="sm"
+									size={{ base: 'xs', md: 'sm' }}
 									variant={activeTab === 'history' ? 'solid' : 'ghost'}
 									colorScheme={activeTab === 'history' ? 'green' : 'gray'}
 									onClick={() => setActiveTab('history')}
+									flexShrink={0}
 								>
-									History ({history.length})
+									<Text display={{ base: 'none', sm: 'inline' }}>History</Text>
+									<Text display={{ base: 'inline', sm: 'none' }}>📜</Text>
+									{history.length > 0 && <Text ml={1}>({history.length})</Text>}
 								</Button>
 								<Button
-									size="sm"
+									size={{ base: 'xs', md: 'sm' }}
 									variant={activeTab === 'tips' ? 'solid' : 'ghost'}
 									colorScheme={activeTab === 'tips' ? 'green' : 'gray'}
 									onClick={() => setActiveTab('tips')}
+									flexShrink={0}
 								>
-									Tips
+									<HStack gap={1}>
+										<Text>Tips</Text>
+										{hasRelevantIssues && (
+											<Badge colorScheme="red" fontSize="2xs" px={1}>!</Badge>
+										)}
+									</HStack>
 								</Button>
 							</HStack>
 
@@ -351,6 +449,56 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 									{plant.isCustomPlant ? (
 										// Custom plant care guide
 										<>
+											{/* Custom Plant Appearance */}
+											{(plant.customLeafShape || plant.customLeafSize || plant.customGrowthPattern || plant.customSpecialFeatures) && (
+												<Card.Root variant="outline">
+													<Card.Body>
+														<Text fontSize="md" fontWeight="bold" mb={3}>
+															🌿 What it looks like
+														</Text>
+														<VStack align="stretch" gap={2} fontSize="sm">
+															{plant.customLeafShape && (
+																<HStack>
+																	<Text color="gray.600" minW="80px">Leaves:</Text>
+																	<Text fontWeight="medium" textTransform="capitalize">
+																		{plant.customLeafShape}
+																		{plant.customLeafSize && `, ${plant.customLeafSize}`}
+																	</Text>
+																</HStack>
+															)}
+															{!plant.customLeafShape && plant.customLeafSize && (
+																<HStack>
+																	<Text color="gray.600" minW="80px">Leaf size:</Text>
+																	<Text fontWeight="medium" textTransform="capitalize">
+																		{plant.customLeafSize}
+																	</Text>
+																</HStack>
+															)}
+															{plant.customGrowthPattern && (
+																<HStack>
+																	<Text color="gray.600" minW="80px">Growth:</Text>
+																	<Text fontWeight="medium" textTransform="capitalize">
+																		{plant.customGrowthPattern}
+																	</Text>
+																</HStack>
+															)}
+															{plant.customSpecialFeatures && plant.customSpecialFeatures.length > 0 && (
+																<HStack align="start">
+																	<Text color="gray.600" minW="80px">Features:</Text>
+																	<HStack flexWrap="wrap" gap={1.5}>
+																		{plant.customSpecialFeatures.map((feature, idx) => (
+																			<Badge key={idx} colorScheme="purple" fontSize="xs">
+																				{feature}
+																			</Badge>
+																		))}
+																	</HStack>
+																</HStack>
+															)}
+														</VStack>
+													</Card.Body>
+												</Card.Root>
+											)}
+
 											<Card.Root variant="outline">
 												<Card.Body>
 													<Text fontSize="md" fontWeight="bold" mb={2}>
@@ -378,26 +526,76 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												</Card.Body>
 											</Card.Root>
 
-											{plant.customCareNotes && (
+											{/* Care Instructions */}
+											{plant.customCareNotes ? (
 												<Card.Root variant="outline">
 													<Card.Body>
 														<Text fontSize="md" fontWeight="bold" mb={2}>
-															📝 Care Notes
+															📝 Care Instructions
 														</Text>
-														<Text fontSize="sm">{plant.customCareNotes}</Text>
+														<Text fontSize="sm" whiteSpace="pre-wrap">{plant.customCareNotes}</Text>
+													</Card.Body>
+												</Card.Root>
+											) : (
+												<Box bg="blue.50" p={3} borderRadius="md">
+													<Text fontSize="sm" color="blue.700">
+														💡 This is a custom plant. Click "Edit" to add your care instructions.
+													</Text>
+												</Box>
+											)}
+
+											{/* Personal Notes */}
+											{plant.notes && (
+												<Card.Root variant="outline">
+													<Card.Body>
+														<Text fontSize="md" fontWeight="bold" mb={2}>
+															📓 Your Notes
+														</Text>
+														<Text fontSize="sm" whiteSpace="pre-wrap">{plant.notes}</Text>
 													</Card.Body>
 												</Card.Root>
 											)}
 
-											<Box bg="blue.50" p={3} borderRadius="md">
-												<Text fontSize="sm" color="blue.700">
-													💡 This is a custom plant. Edit it to add more detailed care instructions.
-												</Text>
-											</Box>
+
 										</>
 									) : (
 										// Database plant care guide
 										<>
+											{/* Plant Appearance */}
+											<Card.Root variant="outline">
+												<Card.Body>
+													<Text fontSize="md" fontWeight="bold" mb={3}>
+														🌿 What it looks like
+													</Text>
+													<VStack align="stretch" gap={2} fontSize="sm">
+														<HStack>
+															<Text color="gray.600" minW="80px">Leaves:</Text>
+															<Text fontWeight="medium" textTransform="capitalize">
+																{species?.characteristics.leafShape.replace('-', ' ')} shape, {species?.characteristics.leafSize} size
+															</Text>
+														</HStack>
+														<HStack>
+															<Text color="gray.600" minW="80px">Growth:</Text>
+															<Text fontWeight="medium" textTransform="capitalize">
+																{species?.characteristics.growthPattern}
+															</Text>
+														</HStack>
+														{species?.characteristics.specialFeatures && species.characteristics.specialFeatures.length > 0 && (
+															<HStack align="start">
+																<Text color="gray.600" minW="80px">Features:</Text>
+																<HStack flexWrap="wrap" gap={1.5}>
+																	{species.characteristics.specialFeatures.map((feature) => (
+																		<Badge key={feature} colorScheme="purple" fontSize="xs">
+																			{feature}
+																		</Badge>
+																	))}
+																</HStack>
+															</HStack>
+														)}
+													</VStack>
+												</Card.Body>
+											</Card.Root>
+
 											{/* Watering */}
 											<Card.Root variant="outline">
 												<Card.Body>
@@ -464,7 +662,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 													{formatTemperatureRange(species?.temperature.min || 60, species?.temperature.max || 80, temperatureUnit)}
 												  </Text>
 												  <Text fontSize="xs" color="gray.500">
-													Ideal: {species?.temperature.ideal}
+													Ideal: {formatIdealTemperature(species?.temperature.ideal || '60-75°F', temperatureUnit)}
 												  </Text>
 												</Box>
 												<Box>
@@ -477,6 +675,18 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 											</VStack>
 										</Card.Body>
 									</Card.Root>
+
+									{/* Personal Notes (for database plants) */}
+									{plant.notes && (
+										<Card.Root variant="outline">
+											<Card.Body>
+												<Text fontSize="md" fontWeight="bold" mb={2}>
+													📓 Your Notes
+												</Text>
+												<Text fontSize="sm" whiteSpace="pre-wrap">{plant.notes}</Text>
+											</Card.Body>
+										</Card.Root>
+									)}
 										</>
 									)}
 								</VStack>
@@ -622,14 +832,6 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 										/>
 									</Box>
 
-									{/* Submit Button */}
-									<Button
-										colorScheme="green"
-										onClick={handleCheckInSubmit}
-										size="lg"
-									>
-										Save Check-in
-									</Button>
 								</VStack>
 							)}
 
@@ -819,22 +1021,111 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 							{activeTab === 'tips' && (
 								<VStack gap={4} align="stretch">
 									{plant.isCustomPlant ? (
-										<Box bg="blue.50" p={4} borderRadius="md">
-											<Text fontSize="md" fontWeight="bold" mb={2} color="blue.800">
-												💡 Custom Plant Tips
-											</Text>
-											<Text fontSize="sm" color="blue.700">
-												This is a custom plant! You can edit it to add your own care notes and observations.
-											</Text>
-											{plant.notes && (
-												<Box mt={3} p={3} bg="white" borderRadius="md">
-													<Text fontSize="xs" fontWeight="bold" mb={1}>Your notes:</Text>
-													<Text fontSize="sm">{plant.notes}</Text>
+										<>
+											{/* General Plant Care Tips */}
+											<Box>
+												<Text fontSize="md" fontWeight="bold" mb={3}>
+													💡 General Plant Care Tips
+												</Text>
+												<VStack align="stretch" gap={2}>
+													<Card.Root variant="subtle" size="sm">
+														<Card.Body>
+															<Text fontSize="sm" fontWeight="medium" mb={1}>💧 Watering Issues</Text>
+															<Text fontSize="xs">Most problems come from watering. Check soil before watering - stick your finger 1-2 inches deep. Water thoroughly when dry, but never let it sit in water.</Text>
+														</Card.Body>
+													</Card.Root>
+													<Card.Root variant="subtle" size="sm">
+														<Card.Body>
+															<Text fontSize="sm" fontWeight="medium" mb={1}>☀️ Light Problems</Text>
+															<Text fontSize="xs">If leaves are pale or stretching, move to brighter light. If leaves are burned or fading, move away from direct sun.</Text>
+														</Card.Body>
+													</Card.Root>
+													<Card.Root variant="subtle" size="sm">
+														<Card.Body>
+															<Text fontSize="sm" fontWeight="medium" mb={1}>🟡 Yellow Leaves</Text>
+															<Text fontSize="xs">Usually overwatering or natural aging. Check if soil is too wet. Lower leaves yellowing naturally is normal.</Text>
+														</Card.Body>
+													</Card.Root>
+													<Card.Root variant="subtle" size="sm">
+														<Card.Body>
+															<Text fontSize="sm" fontWeight="medium" mb={1}>🟤 Brown Tips/Edges</Text>
+															<Text fontSize="xs">Often from low humidity, tap water chemicals, or inconsistent watering. Use filtered water and maintain regular schedule.</Text>
+														</Card.Body>
+													</Card.Root>
+													<Card.Root variant="subtle" size="sm">
+														<Card.Body>
+															<Text fontSize="sm" fontWeight="medium" mb={1}>⬇️ Drooping Leaves</Text>
+															<Text fontSize="xs">Usually thirsty or overwatered. Check soil: if dry → water; if wet → stop watering and improve drainage.</Text>
+														</Card.Body>
+													</Card.Root>
+												</VStack>
+											</Box>
+
+											{/* Your Care Instructions */}
+											{plant.customCareNotes ? (
+												<Card.Root variant="outline" borderColor="blue.300">
+													<Card.Body>
+														<Text fontSize="md" fontWeight="bold" mb={2} color="blue.800">
+															📝 Your Care Instructions
+														</Text>
+														<Text fontSize="sm" whiteSpace="pre-wrap">{plant.customCareNotes}</Text>
+													</Card.Body>
+												</Card.Root>
+											) : (
+												<Box bg="blue.50" p={4} borderRadius="md">
+													<Text fontSize="sm" color="blue.700">
+														💡 Click "Edit" to add your care instructions for this plant.
+													</Text>
 												</Box>
 											)}
-										</Box>
+										</>
 									) : (
 										<>
+											{/* Suggested Solutions (Smart - based on recent check-ins) */}
+											{hasRelevantIssues && (
+												<Box bg="red.50" borderWidth={2} borderColor="red.300" p={4} borderRadius="md">
+													<HStack mb={3}>
+														<Badge colorScheme="red" fontSize="sm" px={2} py={1}>
+															❗ NEEDS ATTENTION
+														</Badge>
+														<Text fontSize="md" fontWeight="bold" color="red.800">
+															Suggested Solutions
+														</Text>
+													</HStack>
+													<Text fontSize="xs" color="red.700" mb={3}>
+														Based on your recent check-ins, these issues might help:
+													</Text>
+													<VStack align="stretch" gap={3}>
+														{relevantIssues.map((issue, index) => (
+															<Card.Root key={`relevant-${index}`} variant="outline" borderColor="red.300">
+																<Card.Body bg="white">
+																	<VStack align="stretch" gap={2} fontSize="sm">
+																		<HStack>
+																			<Badge colorScheme="red" fontSize="xs">!</Badge>
+																			<Text fontWeight="bold" color="red.700">
+																				{issue.symptom}
+																			</Text>
+																		</HStack>
+																		<Box>
+																			<Text color="orange.600" fontWeight="medium" fontSize="xs">
+																				Likely cause:
+																			</Text>
+																			<Text>{issue.cause}</Text>
+																		</Box>
+																		<Box bg="green.50" p={2} borderRadius="md">
+																			<Text color="green.700" fontWeight="medium" fontSize="xs" mb={1}>
+																				✓ What to do:
+																			</Text>
+																			<Text color="green.800">{issue.solution}</Text>
+																		</Box>
+																	</VStack>
+																</Card.Body>
+															</Card.Root>
+														))}
+													</VStack>
+												</Box>
+											)}
+
 											{/* Quick Tips */}
 											<Box>
 												<Text fontSize="md" fontWeight="bold" mb={3}>
@@ -851,10 +1142,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												</VStack>
 											</Box>
 
-											{/* Common Issues */}
+											{/* All Common Issues */}
 											<Box>
 												<Text fontSize="md" fontWeight="bold" mb={3}>
-													🩺 Common Issues
+													🩺 All Common Issues
 												</Text>
 												<VStack align="stretch" gap={3}>
 													{species?.commonIssues.map((issue, index) => (
@@ -882,6 +1173,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 													))}
 												</VStack>
 											</Box>
+
+
 										</>
 									)}
 								</VStack>
@@ -890,19 +1183,38 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 					</DialogBody>
 
 					<DialogFooter>
-						<HStack width="full" justify="space-between" flexWrap="wrap" gap={2}>
-							<Button size="sm" colorScheme="red" variant="ghost" onClick={handleDelete}>
-								Delete
-							</Button>
-							<HStack>
-								<Button size="sm" variant="outline" onClick={() => setIsEditOpen(true)}>
-									Edit
+						{activeTab === 'check-in' ? (
+							// Check-in tab footer with prominent Save button
+							<HStack width="full" justify="space-between" gap={2}>
+								<Button size="md" variant="ghost" onClick={onClose}>
+									Cancel
 								</Button>
-								<Button size="sm" colorScheme="green" onClick={onClose}>
-									Close
+								<Button
+									size="md"
+									colorScheme="green"
+									onClick={handleCheckInSubmit}
+									fontWeight="bold"
+									px={8}
+								>
+									✓ Save Check-in
 								</Button>
 							</HStack>
-						</HStack>
+						) : (
+							// Other tabs footer
+							<HStack width="full" justify="space-between" flexWrap="wrap" gap={2}>
+								<Button size="sm" colorScheme="red" variant="ghost" onClick={handleDelete}>
+									Delete
+								</Button>
+								<HStack>
+									<Button size="sm" variant="outline" onClick={() => setIsEditOpen(true)}>
+										Edit
+									</Button>
+									<Button size="sm" colorScheme="green" onClick={onClose}>
+										Close
+									</Button>
+								</HStack>
+							</HStack>
+						)}
 					</DialogFooter>
 				</DialogContent>
 			</DialogRoot>

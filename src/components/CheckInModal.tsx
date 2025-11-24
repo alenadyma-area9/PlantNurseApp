@@ -26,6 +26,7 @@ import { getPlantById } from '../data/plantDatabase'
 import type { SoilMoisture, LeafCondition, CheckInAction, PlantCondition } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { formatDistance } from '../utils/unitConversion'
+import { toaster } from '../main'
 
 interface CheckInModalProps {
 	plantId: string
@@ -80,7 +81,12 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 		const conditionChanged = plantCondition !== plant.condition
 
 		if (!hasObservation && !conditionChanged) {
-			alert('Please update the plant condition or add at least one observation')
+			toaster.create({
+				title: 'Nothing to save',
+				description: 'Please update the plant condition or add at least one observation',
+				type: 'warning',
+				duration: 5000,
+			})
 			return
 		}
 
@@ -97,6 +103,18 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 		if (conditionChanged) {
 			updatePlant(plant.id, { condition: plantCondition })
 		}
+
+		// If plant has no photo yet, use the check-in photo as plant photo
+		if (!plant.photoUrl && photoUrl) {
+			updatePlant(plant.id, { photoUrl })
+		}
+
+		// Show success toast
+		toaster.create({
+			title: 'Check-in saved!',
+			type: 'success',
+			duration: 5000,
+		})
 
 		handleClose()
 	}

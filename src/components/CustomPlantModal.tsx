@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useEnterKey, useEscapeKey } from '../hooks/useKeyboardShortcut'
+import { useCtrlEnterKey, useEscapeKey } from '../hooks/useKeyboardShortcut'
 import {
 	DialogRoot,
 	DialogContent,
@@ -10,9 +10,10 @@ import {
 	DialogCloseTrigger,
 	DialogBackdrop,
 } from '@chakra-ui/react'
-import { Button, Input, VStack, Text, Box, HStack, NativeSelectRoot, NativeSelectField } from '@chakra-ui/react'
+import { Button, Input, VStack, Text, Box, HStack, NativeSelectRoot, NativeSelectField, Textarea } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore, DEFAULT_ROOM_ID } from '../store/roomStore'
+import { useSettingsStore } from '../store/settingsStore'
 import type { PlantSize, PlantCondition, LightLevel } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { RoomManagementModal } from './RoomManagementModal'
@@ -33,8 +34,17 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
 
+	// Visual characteristics (optional)
+	const [leafShape, setLeafShape] = useState('')
+	const [leafSize, setLeafSize] = useState('')
+	const [growthPattern, setGrowthPattern] = useState('')
+	const [specialFeatures, setSpecialFeatures] = useState('')
+	const [careNotes, setCareNotes] = useState('')
+	const [notes, setNotes] = useState('')
+
 	const addPlant = usePlantStore((state) => state.addPlant)
 	const rooms = useRoomStore((state) => state.rooms)
+	const distanceUnit = useSettingsStore((state) => state.distanceUnit)
 
 	// Set default room when modal opens
 	useEffect(() => {
@@ -45,6 +55,12 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 
 	const handleAddPlant = () => {
 		if (commonName.trim() && selectedRoomId) {
+			// Parse special features from comma-separated string
+			const featuresArray = specialFeatures
+				.split(',')
+				.map(f => f.trim())
+				.filter(f => f.length > 0)
+
 			addPlant({
 				speciesId: '', // No species ID for custom plants
 				customName: commonName.trim(),
@@ -56,6 +72,12 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 				customScientificName: scientificName.trim() || undefined,
 				customCheckFrequency: checkFrequency,
 				customLightLevel: lightLevel,
+				customLeafShape: leafShape.trim() || undefined,
+				customLeafSize: leafSize.trim() || undefined,
+				customGrowthPattern: growthPattern.trim() || undefined,
+				customSpecialFeatures: featuresArray.length > 0 ? featuresArray : undefined,
+				customCareNotes: careNotes.trim() || undefined,
+				notes: notes.trim() || undefined,
 			})
 			handleClose()
 		}
@@ -70,17 +92,23 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 		setSize('small')
 		setCondition('just-added')
 		setPhotoUrl(undefined)
+		setLeafShape('')
+		setLeafSize('')
+		setGrowthPattern('')
+		setSpecialFeatures('')
+		setCareNotes('')
+		setNotes('')
 		onClose()
 	}
 
 	// Keyboard shortcuts
-	const handleEnter = useCallback(() => {
+	const handleCtrlEnter = useCallback(() => {
 		if (commonName.trim()) {
 			handleAddPlant()
 		}
 	}, [commonName])
 
-	useEnterKey(handleEnter, isOpen)
+	useCtrlEnterKey(handleCtrlEnter, isOpen)
 	useEscapeKey(handleClose, isOpen)
 
 	return (
@@ -184,8 +212,139 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 							</HStack>
 						</Box>
 
+						{/* Visual Characteristics (Optional) */}
+						<Box borderTop="1px solid" borderColor="gray.200" pt={4} mt={2}>
+							<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.700">
+								🌿 What it looks like (optional)
+							</Text>
+							<VStack gap={3} align="stretch">
+								{/* Leaf Shape */}
+								<Box>
+									<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+										Leaf shape:
+									</Text>
+									<HStack gap={1.5} flexWrap="wrap">
+										{['heart', 'oval', 'round', 'long-narrow', 'spiky', 'hand-shaped'].map((shape) => (
+											<Button
+												key={shape}
+												size="xs"
+												variant={leafShape === shape ? 'solid' : 'outline'}
+												colorScheme={leafShape === shape ? 'purple' : 'gray'}
+												onClick={() => setLeafShape(shape)}
+											>
+												{shape}
+											</Button>
+										))}
+										<Input
+											placeholder="or custom..."
+											value={!['heart', 'oval', 'round', 'long-narrow', 'spiky', 'hand-shaped'].includes(leafShape) ? leafShape : ''}
+											onChange={(e) => setLeafShape(e.target.value)}
+											size="xs"
+											maxW="150px"
+											flex="0 1 auto"
+										/>
+									</HStack>
+								</Box>
+
+								{/* Leaf Size */}
+								<Box>
+									<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+										Leaf size:
+									</Text>
+									<HStack gap={1.5} flexWrap="wrap">
+										{['small', 'medium', 'large'].map((sz) => (
+											<Button
+												key={sz}
+												size="xs"
+												variant={leafSize === sz ? 'solid' : 'outline'}
+												colorScheme={leafSize === sz ? 'purple' : 'gray'}
+												onClick={() => setLeafSize(sz)}
+												minW="70px"
+											>
+												{sz}
+											</Button>
+										))}
+										<Input
+											placeholder="or custom..."
+											value={!['small', 'medium', 'large'].includes(leafSize) ? leafSize : ''}
+											onChange={(e) => setLeafSize(e.target.value)}
+											size="xs"
+											maxW="150px"
+											flex="0 1 auto"
+										/>
+									</HStack>
+								</Box>
+
+								{/* Growth Pattern */}
+								<Box>
+									<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+										Growth pattern:
+									</Text>
+									<HStack gap={1.5} flexWrap="wrap">
+										{['upright', 'trailing', 'climbing', 'bushy'].map((pattern) => (
+											<Button
+												key={pattern}
+												size="xs"
+												variant={growthPattern === pattern ? 'solid' : 'outline'}
+												colorScheme={growthPattern === pattern ? 'purple' : 'gray'}
+												onClick={() => setGrowthPattern(pattern)}
+											>
+												{pattern}
+											</Button>
+										))}
+										<Input
+											placeholder="or custom..."
+											value={!['upright', 'trailing', 'climbing', 'bushy'].includes(growthPattern) ? growthPattern : ''}
+											onChange={(e) => setGrowthPattern(e.target.value)}
+											size="xs"
+											maxW="150px"
+											flex="0 1 auto"
+										/>
+									</HStack>
+								</Box>
+
+								{/* Special Features */}
+								<Box>
+									<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+										Special features:
+									</Text>
+									<HStack gap={1.5} flexWrap="wrap">
+										{['variegated', 'waxy', 'fuzzy', 'succulent', 'holes', 'colorful'].map((feature) => (
+											<Button
+												key={feature}
+												size="xs"
+												variant={specialFeatures.includes(feature) ? 'solid' : 'outline'}
+												colorScheme={specialFeatures.includes(feature) ? 'purple' : 'gray'}
+												onClick={() => {
+													const features = specialFeatures.split(',').map(f => f.trim()).filter(f => f)
+													if (features.includes(feature)) {
+														setSpecialFeatures(features.filter(f => f !== feature).join(', '))
+													} else {
+														setSpecialFeatures([...features, feature].join(', '))
+													}
+												}}
+											>
+												{feature}
+											</Button>
+										))}
+										<Input
+											placeholder="add more..."
+											value={specialFeatures}
+											onChange={(e) => setSpecialFeatures(e.target.value)}
+											size="xs"
+											maxW="150px"
+											flex="0 1 auto"
+										/>
+									</HStack>
+									<Text fontSize="2xs" color="gray.500" mt={1}>
+										Click tags or type features (comma-separated)
+									</Text>
+								</Box>
+							</VStack>
+						</Box>
+
 						{/* Location & Details */}
-						<Box>
+						<Box borderTop="1px solid" borderColor="gray.200" pt={4} mt={2}>
 							<HStack justify="space-between" align="start" mb={2}>
 								<Text fontSize="sm" fontWeight="bold">
 									Location:
@@ -215,8 +374,13 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 						</Box>
 
 						<Box>
-							<Text fontSize="sm" fontWeight="bold" mb={2}>
+							<Text fontSize="sm" fontWeight="bold" mb={1}>
 								Size:
+							</Text>
+							<Text fontSize="xs" color="gray.500" mb={2}>
+								{distanceUnit === 'cm'
+									? 'Pot diameter: Small (10-15cm), Medium (15-25cm), Large (25cm+)'
+									: 'Pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)'}
 							</Text>
 							<HStack gap={2}>
 								{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
@@ -261,6 +425,38 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 						</Box>
 
 						<Box>
+							<Text fontSize="sm" fontWeight="bold" mb={2}>
+								Care notes (optional):
+							</Text>
+							<Textarea
+								placeholder="e.g., Water thoroughly, let soil dry between waterings, prefers humidity..."
+								value={careNotes}
+								onChange={(e) => setCareNotes(e.target.value)}
+								rows={3}
+								fontSize="sm"
+							/>
+							<Text fontSize="xs" color="gray.500" mt={1}>
+								Care instructions shown in Care Guide tab
+							</Text>
+						</Box>
+
+						<Box>
+							<Text fontSize="sm" fontWeight="bold" mb={2}>
+								Notes (optional):
+							</Text>
+							<Textarea
+								placeholder="e.g., Gift from mom, bought at local nursery, special memories..."
+								value={notes}
+								onChange={(e) => setNotes(e.target.value)}
+								rows={2}
+								fontSize="sm"
+							/>
+							<Text fontSize="xs" color="gray.500" mt={1}>
+								Personal notes about this plant
+							</Text>
+						</Box>
+
+						<Box>
 							<PhotoUpload
 								currentPhoto={photoUrl}
 								onPhotoChange={setPhotoUrl}
@@ -270,17 +466,22 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 					</VStack>
 				</DialogBody>
 
-				<DialogFooter>
-					<Button variant="ghost" mr={3} onClick={handleClose}>
-						Cancel
-					</Button>
-					<Button
-						colorScheme="green"
-						onClick={handleAddPlant}
-						disabled={!commonName.trim()}
-					>
-						Add Custom Plant
-					</Button>
+				<DialogFooter flexDirection="column" alignItems="stretch" gap={2}>
+					<HStack justify="space-between" width="full">
+						<Button variant="ghost" onClick={handleClose}>
+							Cancel
+						</Button>
+						<Button
+							colorScheme="green"
+							onClick={handleAddPlant}
+							disabled={!commonName.trim()}
+						>
+							Add Custom Plant
+						</Button>
+					</HStack>
+					<Text fontSize="xs" color="gray.500" textAlign="center">
+						Press Ctrl+Enter to save quickly
+					</Text>
 				</DialogFooter>
 			</DialogContent>
 

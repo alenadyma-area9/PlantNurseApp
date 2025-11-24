@@ -126,6 +126,12 @@ export interface UserPlant {
 	customLightLevel?: LightLevel // light requirements for custom plants
 	customCareNotes?: string // user's own care instructions
 
+	// Custom plant appearance (optional)
+	customLeafShape?: string // free text description of leaf shape
+	customLeafSize?: string // free text description of leaf size
+	customGrowthPattern?: string // free text description of growth pattern
+	customSpecialFeatures?: string[] // array of feature descriptions
+
 	// Optional
 	notes?: string // user's personal notes
 	photoUrl?: string // optional user photo

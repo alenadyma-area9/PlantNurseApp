@@ -45,7 +45,7 @@ export const usePlantStore = create<PlantStore>()(
 					dateAdded: new Date().toISOString(),
 				}
 				set((state) => ({
-					plants: [...state.plants, newPlant],
+					plants: [newPlant, ...state.plants],
 				}))
 			},
 

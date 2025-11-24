@@ -30,7 +30,6 @@ interface SortablePlantCardProps {
 	plant: any
 	species: any
 	room: any
-	status: any
 	checkIns: any[]
 	hasCheckIns: boolean
 	nextCheckDate: Date | null
@@ -43,7 +42,6 @@ function SortablePlantCard({
 	plant,
 	species,
 	room,
-	status,
 	checkIns,
 	hasCheckIns,
 	nextCheckDate,
@@ -62,153 +60,191 @@ function SortablePlantCard({
 		opacity: isDragging ? 0.5 : 1,
 	}
 
-	// Status colors - adjust label for newly added plants
-	const statusConfig = {
-		'needs-attention': { color: 'red', icon: '🔴', label: 'Needs attention' },
-		'check-soon': { color: 'yellow', icon: '🟡', label: 'Check soon' },
-		'recently-checked': {
-			color: 'green',
-			icon: '🟢',
-			label: hasCheckIns ? 'Recently checked' : 'Recently added',
-		},
-		'may-have-issue': { color: 'orange', icon: '⚠️', label: 'May have issue' },
+	// Plant HEALTH condition - how the plant is feeling (most important!)
+	const conditionConfig = {
+		'just-added': { color: 'blue', icon: '🆕', label: 'Just added' },
+		'healthy': { color: 'green', icon: '✓', label: 'Healthy' },
+		'needs-attention': { color: 'orange', icon: '⚠️', label: 'Needs attention' },
+		'struggling': { color: 'red', icon: '🥀', label: 'Struggling' },
 	}
-
-	const currentStatus = statusConfig[status as keyof typeof statusConfig]
-
-	// Condition emoji
-	const conditionEmoji = {
-		'just-added': '🆕',
-		healthy: '🌿',
-		'needs-attention': '⚠️',
-		struggling: '🥀',
-	}
+	const plantCondition = conditionConfig[plant.condition as keyof typeof conditionConfig]
 
 	return (
-		<Card.Root key={plant.id} variant="outline" ref={setNodeRef} style={style}>
+		<Card.Root key={plant.id} variant="outline" ref={setNodeRef} style={style} userSelect="none">
 			<Card.Body p={{ base: 3, md: 4 }}>
-				<HStack gap={3} align="start">
-					{/* Drag Handle */}
-					{!isDragDisabled && (
-						<Box
-							{...attributes}
-							{...listeners}
-							cursor="grab"
-							_active={{ cursor: 'grabbing' }}
-							color="gray.400"
-							fontSize="xl"
-							userSelect="none"
-							pt={2}
+				<VStack gap={3} align="stretch" userSelect="auto">
+					{/* Header: Drag handle + Plant Name */}
+					<HStack gap={2}>
+						{!isDragDisabled && (
+							<Box
+								{...attributes}
+								{...listeners}
+								cursor="grab"
+								_active={{ cursor: 'grabbing' }}
+								color="gray.400"
+								fontSize="xl"
+								userSelect="none"
+								flexShrink={0}
+							>
+								⋮⋮
+							</Box>
+						)}
+						<Text
+							fontSize={{ base: 'lg', md: 'xl' }}
+							fontWeight="bold"
+							flex={1}
+							cursor="pointer"
+							onClick={onDetails}
+							_hover={{ color: 'green.600', textDecoration: 'underline' }}
+							lineClamp={1}
 						>
-							⋮⋮
-						</Box>
-					)}
+							{plant.customName}
+						</Text>
+					</HStack>
 
-					{/* Plant Photo */}
-					{plant.photoUrl && (
-						<Box flexShrink={0}>
-							<ChakraImage
-								src={plant.photoUrl}
-								alt={plant.customName}
-								width="80px"
-								height="80px"
-								objectFit="cover"
-								borderRadius="md"
-							/>
+					{/* Content Row: Photo + Plant Info */}
+					<HStack gap={4} align="start">
+						{/* Photo - Fixed space */}
+						<Box flexShrink={0} width="80px" height="80px">
+							{plant.photoUrl ? (
+								<ChakraImage
+									src={plant.photoUrl}
+									alt={plant.customName}
+									width="80px"
+									height="80px"
+									objectFit="cover"
+									borderRadius="md"
+								/>
+							) : (
+								<Box
+									width="80px"
+									height="80px"
+									bg="gray.100"
+									borderRadius="md"
+									display="flex"
+									alignItems="center"
+									justifyContent="center"
+									color="gray.400"
+									fontSize="2xl"
+								>
+									🪴
+								</Box>
+							)}
 						</Box>
-					)}
 
-					<VStack gap={3} align="stretch" flex={1}>
-						{/* Header */}
-						<HStack justify="space-between" align="start" flexWrap="wrap" gap={2}>
-							<VStack align="start" gap={1} flex={1} minW="0">
-								<HStack flexWrap="wrap" gap={2}>
-									<Text
-										fontSize={{ base: 'lg', md: 'xl' }}
-										fontWeight="bold"
-										lineClamp={1}
-										cursor="pointer"
-										onClick={onDetails}
-										_hover={{ color: 'green.600', textDecoration: 'underline' }}
-									>
-										{conditionEmoji[plant.condition as keyof typeof conditionEmoji]}{' '}
-										{plant.customName}
-									</Text>
-									<Badge colorScheme={currentStatus.color} fontSize="xs">
-										{currentStatus.icon} {currentStatus.label}
-									</Badge>
-									{plant.isCustomPlant && (
-										<Badge colorScheme="blue" fontSize="xs">
-											🌱 Custom
+						{/* Plant Info */}
+						<VStack align="start" gap={2} flex={1} minW={0}>
+							{/* MOST IMPORTANT: Plant Health Status */}
+							<Badge colorScheme={plantCondition.color} fontSize="sm" px={2} py={1}>
+								{plantCondition.icon} {plantCondition.label}
+							</Badge>
+
+							{/* Less important info */}
+							<VStack align="start" gap={1} fontSize="xs" color="gray.600">
+								{/* Species Name + Care Level on same row */}
+								{!plant.isCustomPlant && species && (
+									<HStack gap={2} flexWrap="wrap">
+										<Text lineClamp={1} fontWeight="medium">
+											{species.commonName}
+										</Text>
+										<Badge
+											colorScheme={
+												species.careLevel === 'beginner' ? 'green' :
+												species.careLevel === 'intermediate' ? 'yellow' :
+												'purple'
+											}
+											fontSize="xs"
+										>
+											{species.careLevel === 'beginner' ? '🌱 Easy care' :
+											 species.careLevel === 'intermediate' ? '🌿 Moderate care' :
+											 '🎓 Advanced'}
 										</Badge>
-									)}
-								</HStack>
+									</HStack>
+								)}
 
-								<Text fontSize="sm" color="gray.600">
-									{plant.isCustomPlant
-										? `${plant.customScientificName || 'Custom plant'} • ${plant.size}`
-										: `${species.commonName} • ${species.careLevel} • ${plant.size}`}
-								</Text>
+								{/* Custom plant: scientific name + badge */}
+								{plant.isCustomPlant && (
+									<HStack gap={2} flexWrap="wrap">
+										{plant.customScientificName && (
+											<Text lineClamp={1} fontWeight="medium">
+												{plant.customScientificName}
+											</Text>
+										)}
+										<Badge colorScheme="blue" fontSize="xs">
+											🌱 Custom plant
+										</Badge>
+									</HStack>
+								)}
 
+								{/* Room Info */}
 								{room && (
-									<Text fontSize="xs" color="gray.500">
+									<Text lineClamp={1}>
 										📍 {room.name} ({room.lightLevel} light)
 									</Text>
 								)}
 							</VStack>
+						</VStack>
+					</HStack>
 
-							<VStack gap={2} minW={{ base: 'full', sm: 'auto' }} pointerEvents="auto">
-								<Button
-									size="sm"
-									colorScheme="green"
-									width={{ base: 'full', sm: 'auto' }}
-									onClick={(e) => {
-										e.stopPropagation()
-										onCheckIn()
-									}}
-									pointerEvents="auto"
-								>
-									Check-in
-								</Button>
-								<Button
-									size="sm"
-									variant="ghost"
-									width={{ base: 'full', sm: 'auto' }}
-									onClick={(e) => {
-										e.stopPropagation()
-										onDetails()
-									}}
-									pointerEvents="auto"
-								>
-									Details
-								</Button>
-							</VStack>
-						</HStack>
-
-						{/* Info */}
-						<HStack
-							fontSize="xs"
-							color="gray.500"
-							flexWrap="wrap"
-							gap={3}
-							pt={2}
-							borderTopWidth={1}
-							borderColor="gray.100"
-						>
-							<Text>
+					{/* Footer: Time + Check Schedule + Buttons */}
+					<HStack
+						gap={2}
+						flexWrap="wrap"
+						justify="space-between"
+						align="center"
+						pt={2}
+						borderTopWidth={1}
+						borderColor="gray.100"
+					>
+						<VStack align="start" gap={0.5} flex={1} minW={0} fontSize="xs" color="gray.600">
+							<Text lineClamp={1}>
 								{hasCheckIns
 									? `Last check: ${formatTimeAgo(checkIns[0].date)}`
 									: `Added ${formatTimeAgo(plant.dateAdded)}`}
 							</Text>
-							{species.watering.checkFrequency && nextCheckDate && (
-								<Text>
-									• Check every {species.watering.checkFrequency} days, next:{' '}
+							{nextCheckDate && (
+								<Text lineClamp={1}>
+									Check every {plant.isCustomPlant ? plant.customCheckFrequency : species?.watering.checkFrequency} days, next:{' '}
 									{nextCheckDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
 								</Text>
 							)}
-						</HStack>
-					</VStack>
-				</HStack>
+						</VStack>
+
+						{/* Action Buttons */}
+						<Box
+							flexShrink={0}
+							onPointerDown={(e) => e.stopPropagation()}
+							onMouseDown={(e) => e.stopPropagation()}
+						>
+							<HStack gap={2}>
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										onDetails()
+									}}
+									onPointerDown={(e) => e.stopPropagation()}
+								>
+									Details
+								</Button>
+								<Button
+									size="sm"
+									colorScheme="green"
+									onClick={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										onCheckIn()
+									}}
+									onPointerDown={(e) => e.stopPropagation()}
+								>
+									Check-in
+								</Button>
+							</HStack>
+						</Box>
+					</HStack>
+				</VStack>
 			</Card.Body>
 		</Card.Root>
 	)
@@ -286,14 +322,21 @@ export function PlantList({ viewMode }: PlantListProps) {
 
 	// Prepare plant data with metadata
 	const plantsWithData = plants.map((plant) => {
-		const species = getPlantById(plant.speciesId)
-		if (!species) return null
+		// For custom plants, species will be null - that's OK
+		const species = plant.isCustomPlant ? null : getPlantById(plant.speciesId)
 
-		const status = getPlantStatus(plant.id, species.watering.checkFrequency)
+		// Skip if it's a database plant but species not found (data issue)
+		if (!plant.isCustomPlant && !species) return null
+
+		const checkFrequency = plant.isCustomPlant
+			? (plant.customCheckFrequency || 7)
+			: (species?.watering.checkFrequency || 7)
+
+		const status = getPlantStatus(plant.id, checkFrequency)
 		const checkIns = getPlantCheckIns(plant.id)
 		const room = getRoom(plant.roomId)
 		const hasCheckIns = checkIns.length > 0
-		const nextCheckDate = getNextCheckDate(plant.id, species.watering.checkFrequency)
+		const nextCheckDate = getNextCheckDate(plant.id, checkFrequency)
 
 		return {
 			plant,
@@ -359,14 +402,21 @@ export function PlantList({ viewMode }: PlantListProps) {
 				beginner: [],
 				intermediate: [],
 				advanced: [],
+				custom: [],
 			}
 			plantsWithData.forEach(item => {
-				careLevelGroups[item.species.careLevel].push(item)
+				if (item.plant.isCustomPlant) {
+					careLevelGroups['custom'].push(item)
+				} else if (item.species) {
+					careLevelGroups[item.species.careLevel].push(item)
+				}
 			})
 			organizedPlants = Object.entries(careLevelGroups)
 				.filter(([_, plants]) => plants.length > 0)
 				.map(([level, plants]) => ({
-					title: `${level.charAt(0).toUpperCase() + level.slice(1)} Plants`,
+					title: level === 'custom'
+						? 'Custom Plants'
+						: `${level.charAt(0).toUpperCase() + level.slice(1)} Plants`,
 					plants,
 				}))
 			break
@@ -400,7 +450,7 @@ export function PlantList({ viewMode }: PlantListProps) {
 												plant={item.plant}
 												species={item.species}
 												room={item.room}
-												status={item.status}
+				
 												checkIns={item.checkIns}
 												hasCheckIns={item.hasCheckIns}
 												nextCheckDate={item.nextCheckDate}
@@ -420,7 +470,7 @@ export function PlantList({ viewMode }: PlantListProps) {
 										plant={item.plant}
 										species={item.species}
 										room={item.room}
-										status={item.status}
+		
 										checkIns={item.checkIns}
 										hasCheckIns={item.hasCheckIns}
 										nextCheckDate={item.nextCheckDate}

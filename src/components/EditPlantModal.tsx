@@ -21,6 +21,7 @@ import {
 	NativeSelectField,
 	SimpleGrid,
 	Image as ChakraImage,
+	Textarea,
 } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
@@ -44,6 +45,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	const [selectedRoomId, setSelectedRoomId] = useState('')
 	const [size, setSize] = useState<PlantSize>('small')
 	const [condition, setCondition] = useState<PlantCondition>('just-added')
+	const [careNotes, setCareNotes] = useState('')
 	const [notes, setNotes] = useState('')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
@@ -54,6 +56,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 			setSelectedRoomId(plant.roomId)
 			setSize(plant.size)
 			setCondition(plant.condition)
+			setCareNotes(plant.customCareNotes || '')
 			setNotes(plant.notes || '')
 			setPhotoUrl(plant.photoUrl)
 		}
@@ -81,14 +84,21 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	useEscapeKey(onClose, isOpen)
 
 	const handleSave = () => {
-		updatePlant(plant.id, {
+		const updates: any = {
 			customName: customName.trim(),
 			roomId: selectedRoomId,
 			size,
 			condition,
-			notes: notes.trim() || undefined,
 			photoUrl,
-		})
+			notes: notes.trim() || undefined,
+		}
+
+		// For custom plants, also save care notes
+		if (plant.isCustomPlant) {
+			updates.customCareNotes = careNotes.trim() || undefined
+		}
+
+		updatePlant(plant.id, updates)
 		onClose()
 	}
 
@@ -201,15 +211,40 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 								</VStack>
 							</Box>
 
+							{/* Care notes for custom plants */}
+							{plant.isCustomPlant && (
+								<Box>
+									<Text fontSize="sm" fontWeight="bold" mb={2}>
+										Care instructions (optional):
+									</Text>
+									<Textarea
+										value={careNotes}
+										onChange={(e) => setCareNotes(e.target.value)}
+										placeholder="e.g., Water thoroughly, let soil dry between waterings, prefers humidity..."
+										rows={3}
+										fontSize="sm"
+									/>
+									<Text fontSize="xs" color="gray.500" mt={1}>
+										Care instructions (shown in Care Guide & Tips tabs)
+									</Text>
+								</Box>
+							)}
+
+							{/* Personal notes for all plants */}
 							<Box>
-							  <Text fontSize="sm" fontWeight="bold" mb={2}>
-								Notes (optional):
-							  </Text>
-							  <Input
-								value={notes}
-								onChange={(e) => setNotes(e.target.value)}
-								placeholder="Any additional notes..."
-							  />
+								<Text fontSize="sm" fontWeight="bold" mb={2}>
+									Notes (optional):
+								</Text>
+								<Textarea
+									value={notes}
+									onChange={(e) => setNotes(e.target.value)}
+									placeholder="e.g., Gift from mom, bought at local nursery, special memories..."
+									rows={2}
+									fontSize="sm"
+								/>
+								<Text fontSize="xs" color="gray.500" mt={1}>
+									Personal notes about this plant
+								</Text>
 							</Box>
 
 							<Box>

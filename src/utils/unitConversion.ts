@@ -80,3 +80,22 @@ export function formatDistance(
 	}
 	return description
 }
+
+/**
+ * Format ideal temperature string (e.g., "60-75°F" or "65-75°F")
+ */
+export function formatIdealTemperature(
+	idealString: string,
+	unit: TemperatureUnit
+): string {
+	if (unit === 'celsius') {
+		// Parse "60-75°F" or "65-75°F" format
+		const match = idealString.match(/(\d+)-(\d+)°F/)
+		if (match) {
+			const minF = parseInt(match[1])
+			const maxF = parseInt(match[2])
+			return `${fahrenheitToCelsius(minF)}-${fahrenheitToCelsius(maxF)}°C`
+		}
+	}
+	return idealString
+}
