@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Text, VStack, Card, HStack, Badge, Button, Image as ChakraImage, Heading, NativeSelectRoot, NativeSelectField } from '@chakra-ui/react'
+import { Box, Text, VStack, Card, HStack, Badge, Button, Image as ChakraImage, Heading } from '@chakra-ui/react'
 import {
 	DndContext,
 	closestCenter,
@@ -23,7 +23,8 @@ import { getPlantById } from '../data/plantDatabase'
 import { CheckInModal } from './CheckInModal'
 import { PlantDetailsModal } from './PlantDetailsModal'
 import { formatTimeAgo } from '../utils/timeUtils'
-type ViewMode = 'all' | 'by-room' | 'by-health' | 'by-priority' | 'by-next-check' | 'by-care-level'
+
+export type ViewMode = 'all' | 'by-room' | 'by-health' | 'by-priority' | 'by-next-check' | 'by-care-level'
 
 interface SortablePlantCardProps {
 	plant: any
@@ -207,11 +208,10 @@ function SortablePlantCard({
 }
 
 interface PlantListProps {
-	onOpenSettings: () => void
-	onOpenRoomManagement: () => void
+	viewMode: ViewMode
 }
 
-export function PlantList({ onOpenSettings, onOpenRoomManagement }: PlantListProps) {
+export function PlantList({ viewMode }: PlantListProps) {
 	const plants = usePlantStore((state) => state.plants)
 	const getPlantStatus = usePlantStore((state) => state.getPlantStatus)
 	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
@@ -221,7 +221,6 @@ export function PlantList({ onOpenSettings, onOpenRoomManagement }: PlantListPro
 
 	const [checkInPlantId, setCheckInPlantId] = useState<string | null>(null)
 	const [detailsPlantId, setDetailsPlantId] = useState<string | null>(null)
-	const [viewMode, setViewMode] = useState<ViewMode>('all')
 
 	const sensors = useSensors(
 		useSensor(PointerSensor),
@@ -380,76 +379,11 @@ export function PlantList({ onOpenSettings, onOpenRoomManagement }: PlantListPro
 
 	return (
 		<>
-			{/* View Selector and Actions */}
-			<Box mb={4}>
-				<HStack justify="space-between" flexWrap="wrap" gap={3}>
-					{/* View Dropdown */}
-					<HStack gap={2} flex={1} minW={{ base: 'full', sm: '200px' }}>
-						<Text fontSize="sm" fontWeight="medium" color="gray.700" flexShrink={0}>
-							View:
-						</Text>
-						<NativeSelectRoot size="sm" flex={1}>
-							<NativeSelectField
-								value={viewMode}
-								onChange={(e) => setViewMode(e.target.value as ViewMode)}
-							>
-								<option value="all">📋 All Plants</option>
-								<option value="by-room">🏠 By Room</option>
-								<option value="by-health">💊 By Health</option>
-								<option value="by-priority">🔴 By Priority</option>
-								<option value="by-next-check">📅 By Next Check</option>
-								<option value="by-care-level">🎓 By Care Level</option>
-							</NativeSelectField>
-						</NativeSelectRoot>
-					</HStack>
-
-					{/* Settings and Room Management Buttons */}
-					<HStack gap={2}>
-						<Button
-							size="sm"
-							variant="outline"
-							onClick={onOpenRoomManagement}
-							display={{ base: 'none', sm: 'flex' }}
-						>
-							🏠 Rooms
-						</Button>
-						<Button
-							size="sm"
-							variant="outline"
-							onClick={onOpenSettings}
-							display={{ base: 'none', sm: 'flex' }}
-						>
-							⚙️ Settings
-						</Button>
-
-						{/* Mobile Icons */}
-						<Button
-							size="sm"
-							variant="outline"
-							onClick={onOpenRoomManagement}
-							display={{ base: 'flex', sm: 'none' }}
-							px={2}
-						>
-							🏠
-						</Button>
-						<Button
-							size="sm"
-							variant="outline"
-							onClick={onOpenSettings}
-							display={{ base: 'flex', sm: 'none' }}
-							px={2}
-						>
-							⚙️
-						</Button>
-					</HStack>
-				</HStack>
-
-				{viewMode !== 'all' && (
-					<Text fontSize="xs" color="gray.500" mt={2}>
-						💡 Drag and drop is only available in "All" view
-					</Text>
-				)}
-			</Box>
+			{viewMode !== 'all' && (
+				<Text fontSize="xs" color="gray.500" mb={3} textAlign="center">
+					💡 Drag and drop is only available in "All" view
+				</Text>
+			)}
 
 			{/* Plant Lists */}
 			<VStack gap={6} align="stretch">
