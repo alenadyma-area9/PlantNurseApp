@@ -24,16 +24,8 @@ function App() {
 				<VStack gap={{ base: 4, md: 6 }} align="stretch">
 					{/* Header */}
 					<Box textAlign="center">
-						<Heading size={{ base: 'xl', md: '2xl' }} color="green.600" mb={2}>
+						<Heading size={{ base: 'xl', md: '2xl' }} color="green.600">
 							🌱 PlantNurse
-						</Heading>
-						<Heading
-							size={{ base: 'xs', md: 'sm' }}
-							color="gray.600"
-							fontWeight="normal"
-							px={{ base: 4, md: 0 }}
-						>
-							Learn to care for your plants, one check-in at a time
 						</Heading>
 					</Box>
 
@@ -46,7 +38,7 @@ function App() {
 							onClick={() => setIsAddPlantOpen(true)}
 							flexShrink={0}
 						>
-							+ Add
+							+ Add Plant
 						</Button>
 
 						{/* Right side controls: View Dropdown + Settings Icons */}

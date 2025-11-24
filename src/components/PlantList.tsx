@@ -137,10 +137,17 @@ function SortablePlantCard({
 									<Badge colorScheme={currentStatus.color} fontSize="xs">
 										{currentStatus.icon} {currentStatus.label}
 									</Badge>
+									{plant.isCustomPlant && (
+										<Badge colorScheme="blue" fontSize="xs">
+											🌱 Custom
+										</Badge>
+									)}
 								</HStack>
 
 								<Text fontSize="sm" color="gray.600">
-									{species.commonName} • {species.careLevel} • {plant.size}
+									{plant.isCustomPlant
+										? `${plant.customScientificName || 'Custom plant'} • ${plant.size}`
+										: `${species.commonName} • ${species.careLevel} • ${plant.size}`}
 								</Text>
 
 								{room && (

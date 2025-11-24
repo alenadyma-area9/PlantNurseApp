@@ -61,12 +61,12 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 
 	if (!plant) return null
 
-	const species = getPlantById(plant.speciesId)
+	const species = plant.isCustomPlant ? null : getPlantById(plant.speciesId)
 	const room = getRoom(plant.roomId)
 	const history = getPlantHistory(plant.id)
 	const daysSince = getDaysSinceLastCheckIn(plant.id)
 
-	if (!species) return null
+	// For custom plants, species will be null - that's OK
 
 	const handleDelete = () => {
 		if (window.confirm(`Are you sure you want to delete ${plant.customName}? This cannot be undone.`)) {
@@ -248,24 +248,44 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 
 							<VStack align="start" gap={2} flex={1}>
 							  <Text fontSize="lg" fontWeight="bold" color="green.800">
-								{species.commonName}
+								{plant.isCustomPlant ? plant.customName : species?.commonName}
 							  </Text>
-									<Text fontSize="sm" color="green.700">
-										{species.scientificName}
-									</Text>
-									<HStack flexWrap="wrap" gap={2}>
-										<Badge colorScheme="green" fontSize="xs">
-											{species.careLevel}
-										</Badge>
-										<Badge colorScheme="blue" fontSize="xs">
-											{plant.size}
-										</Badge>
-										{species.petSafe && (
-											<Badge colorScheme="purple" fontSize="xs">
-												Pet safe
-											</Badge>
-										)}
-									</HStack>
+									{plant.isCustomPlant ? (
+										<>
+											{plant.customScientificName && (
+												<Text fontSize="sm" color="green.700">
+													{plant.customScientificName}
+												</Text>
+											)}
+											<HStack flexWrap="wrap" gap={2}>
+												<Badge colorScheme="blue" fontSize="xs">
+													🌱 Custom plant
+												</Badge>
+												<Badge colorScheme="green" fontSize="xs">
+													{plant.size}
+												</Badge>
+											</HStack>
+										</>
+									) : (
+										<>
+											<Text fontSize="sm" color="green.700">
+												{species?.scientificName}
+											</Text>
+											<HStack flexWrap="wrap" gap={2}>
+												<Badge colorScheme="green" fontSize="xs">
+													{species?.careLevel}
+												</Badge>
+												<Badge colorScheme="blue" fontSize="xs">
+													{plant.size}
+												</Badge>
+												{species?.petSafe && (
+													<Badge colorScheme="purple" fontSize="xs">
+														Pet safe
+													</Badge>
+												)}
+											</HStack>
+										</>
+									)}
 
 									<Box width="full" pt={2} borderTopWidth={1} borderColor="green.200">
 										<VStack align="stretch" gap={1} fontSize="sm">
@@ -328,37 +348,87 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 							{/* Care Guide Tab */}
 							{activeTab === 'care' && (
 								<VStack gap={3} align="stretch">
-									{/* Watering */}
-									<Card.Root variant="outline">
-										<Card.Body>
-											<Text fontSize="md" fontWeight="bold" mb={2}>
-												💧 Watering
-											</Text>
-											<VStack align="stretch" gap={2} fontSize="sm">
-												<Box>
-													<Text color="gray.600" fontSize="xs">Check frequency:</Text>
-													<Text fontWeight="medium">
-														Every {species.watering.checkFrequency} days
+									{plant.isCustomPlant ? (
+										// Custom plant care guide
+										<>
+											<Card.Root variant="outline">
+												<Card.Body>
+													<Text fontSize="md" fontWeight="bold" mb={2}>
+														💧 Watering
 													</Text>
-												</Box>
-												<Box>
-												  <Text color="gray.600" fontSize="xs">How to check:</Text>
-												  <Text fontWeight="medium">
-													Stick finger in soil {formatDistance(species.watering.soilCheckDepth, distanceUnit)}
-												  </Text>
-												</Box>
-												<Box>
-													<Text color="gray.600" fontSize="xs">Soil preference:</Text>
-													<Text fontWeight="medium" textTransform="capitalize">
-														{species.watering.soilPreference.replace('-', ' ')}
+													<VStack align="stretch" gap={2} fontSize="sm">
+														<Box>
+															<Text color="gray.600" fontSize="xs">Check frequency:</Text>
+															<Text fontWeight="medium">
+																Every {plant.customCheckFrequency || 7} days
+															</Text>
+														</Box>
+													</VStack>
+												</Card.Body>
+											</Card.Root>
+
+											<Card.Root variant="outline">
+												<Card.Body>
+													<Text fontSize="md" fontWeight="bold" mb={2}>
+														☀️ Light
 													</Text>
-												</Box>
-												{species.watering.seasonalNotes && (
-													<Box>
-														<Text color="gray.600" fontSize="xs">Seasonal notes:</Text>
-														<Text>{species.watering.seasonalNotes}</Text>
-													</Box>
-												)}
+													<Text fontSize="sm" fontWeight="medium" textTransform="capitalize">
+														{plant.customLightLevel || 'medium'} light
+													</Text>
+												</Card.Body>
+											</Card.Root>
+
+											{plant.customCareNotes && (
+												<Card.Root variant="outline">
+													<Card.Body>
+														<Text fontSize="md" fontWeight="bold" mb={2}>
+															📝 Care Notes
+														</Text>
+														<Text fontSize="sm">{plant.customCareNotes}</Text>
+													</Card.Body>
+												</Card.Root>
+											)}
+
+											<Box bg="blue.50" p={3} borderRadius="md">
+												<Text fontSize="sm" color="blue.700">
+													💡 This is a custom plant. Edit it to add more detailed care instructions.
+												</Text>
+											</Box>
+										</>
+									) : (
+										// Database plant care guide
+										<>
+											{/* Watering */}
+											<Card.Root variant="outline">
+												<Card.Body>
+													<Text fontSize="md" fontWeight="bold" mb={2}>
+														💧 Watering
+													</Text>
+													<VStack align="stretch" gap={2} fontSize="sm">
+														<Box>
+															<Text color="gray.600" fontSize="xs">Check frequency:</Text>
+															<Text fontWeight="medium">
+																Every {species?.watering.checkFrequency} days
+															</Text>
+														</Box>
+														<Box>
+														  <Text color="gray.600" fontSize="xs">How to check:</Text>
+														  <Text fontWeight="medium">
+															Stick finger in soil {formatDistance(species?.watering.soilCheckDepth || '', distanceUnit)}
+														  </Text>
+														</Box>
+														<Box>
+															<Text color="gray.600" fontSize="xs">Soil preference:</Text>
+															<Text fontWeight="medium" textTransform="capitalize">
+																{species?.watering.soilPreference.replace('-', ' ')}
+															</Text>
+														</Box>
+														{species?.watering.seasonalNotes && (
+															<Box>
+																<Text color="gray.600" fontSize="xs">Seasonal notes:</Text>
+																<Text>{species.watering.seasonalNotes}</Text>
+															</Box>
+														)}
 											</VStack>
 										</Card.Body>
 									</Card.Root>
@@ -373,10 +443,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												<Box>
 													<Text color="gray.600" fontSize="xs">Light level:</Text>
 													<Text fontWeight="medium" textTransform="capitalize">
-														{species.light.level.replace('-', ' ')}
+														{species?.light.level.replace('-', ' ')}
 													</Text>
 												</Box>
-												<Text>{species.light.description}</Text>
+												<Text>{species?.light.description}</Text>
 											</VStack>
 										</Card.Body>
 									</Card.Root>
@@ -391,22 +461,24 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												<Box>
 												  <Text color="gray.600" fontSize="xs">Temperature range:</Text>
 												  <Text fontWeight="medium">
-													{formatTemperatureRange(species.temperature.min, species.temperature.max, temperatureUnit)}
+													{formatTemperatureRange(species?.temperature.min || 60, species?.temperature.max || 80, temperatureUnit)}
 												  </Text>
 												  <Text fontSize="xs" color="gray.500">
-													Ideal: {species.temperature.ideal}
+													Ideal: {species?.temperature.ideal}
 												  </Text>
 												</Box>
 												<Box>
 													<Text color="gray.600" fontSize="xs">Humidity preference:</Text>
 													<Text fontWeight="medium" textTransform="capitalize">
-														{species.humidity.preference}
+														{species?.humidity.preference}
 													</Text>
-													<Text fontSize="xs">{species.humidity.description}</Text>
+													<Text fontSize="xs">{species?.humidity.description}</Text>
 												</Box>
 											</VStack>
 										</Card.Body>
 									</Card.Root>
+										</>
+									)}
 								</VStack>
 							)}
 
@@ -746,53 +818,72 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 							{/* Tips Tab */}
 							{activeTab === 'tips' && (
 								<VStack gap={4} align="stretch">
-									{/* Quick Tips */}
-									<Box>
-										<Text fontSize="md" fontWeight="bold" mb={3}>
-											💡 Quick Tips
-										</Text>
-										<VStack align="stretch" gap={2}>
-											{species.quickTips.map((tip, index) => (
-												<Card.Root key={index} variant="subtle" size="sm">
-													<Card.Body>
-														<Text fontSize="sm">{tip}</Text>
-													</Card.Body>
-												</Card.Root>
-											))}
-										</VStack>
-									</Box>
+									{plant.isCustomPlant ? (
+										<Box bg="blue.50" p={4} borderRadius="md">
+											<Text fontSize="md" fontWeight="bold" mb={2} color="blue.800">
+												💡 Custom Plant Tips
+											</Text>
+											<Text fontSize="sm" color="blue.700">
+												This is a custom plant! You can edit it to add your own care notes and observations.
+											</Text>
+											{plant.notes && (
+												<Box mt={3} p={3} bg="white" borderRadius="md">
+													<Text fontSize="xs" fontWeight="bold" mb={1}>Your notes:</Text>
+													<Text fontSize="sm">{plant.notes}</Text>
+												</Box>
+											)}
+										</Box>
+									) : (
+										<>
+											{/* Quick Tips */}
+											<Box>
+												<Text fontSize="md" fontWeight="bold" mb={3}>
+													💡 Quick Tips
+												</Text>
+												<VStack align="stretch" gap={2}>
+													{species?.quickTips.map((tip, index) => (
+														<Card.Root key={index} variant="subtle" size="sm">
+															<Card.Body>
+																<Text fontSize="sm">{tip}</Text>
+															</Card.Body>
+														</Card.Root>
+													))}
+												</VStack>
+											</Box>
 
-									{/* Common Issues */}
-									<Box>
-										<Text fontSize="md" fontWeight="bold" mb={3}>
-											🩺 Common Issues
-										</Text>
-										<VStack align="stretch" gap={3}>
-											{species.commonIssues.map((issue, index) => (
-												<Card.Root key={index} variant="outline">
-													<Card.Body>
-														<VStack align="stretch" gap={2} fontSize="sm">
-															<Text fontWeight="bold" color="red.600">
-																{issue.symptom}
-															</Text>
-															<Box>
-																<Text color="orange.600" fontWeight="medium" fontSize="xs">
-																	Cause:
-																</Text>
-																<Text>{issue.cause}</Text>
-															</Box>
-															<Box>
-																<Text color="green.600" fontWeight="medium" fontSize="xs">
-																	Solution:
-																</Text>
-																<Text>{issue.solution}</Text>
-															</Box>
-														</VStack>
-													</Card.Body>
-												</Card.Root>
-											))}
-										</VStack>
-									</Box>
+											{/* Common Issues */}
+											<Box>
+												<Text fontSize="md" fontWeight="bold" mb={3}>
+													🩺 Common Issues
+												</Text>
+												<VStack align="stretch" gap={3}>
+													{species?.commonIssues.map((issue, index) => (
+														<Card.Root key={index} variant="outline">
+															<Card.Body>
+																<VStack align="stretch" gap={2} fontSize="sm">
+																	<Text fontWeight="bold" color="red.600">
+																		{issue.symptom}
+																	</Text>
+																	<Box>
+																		<Text color="orange.600" fontWeight="medium" fontSize="xs">
+																			Cause:
+																		</Text>
+																		<Text>{issue.cause}</Text>
+																	</Box>
+																	<Box>
+																		<Text color="green.600" fontWeight="medium" fontSize="xs">
+																			Solution:
+																		</Text>
+																		<Text>{issue.solution}</Text>
+																	</Box>
+																</VStack>
+															</Card.Body>
+														</Card.Root>
+													))}
+												</VStack>
+											</Box>
+										</>
+									)}
 								</VStack>
 							)}
 						</VStack>

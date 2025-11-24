@@ -74,10 +74,10 @@ export interface PlantSpecies {
 
 	// Identification help
 	characteristics: {
-		leafShape: string
-		leafColor: string
-		growthPattern: string
-		specialFeatures: string[]
+		leafShape: 'heart' | 'round' | 'long-narrow' | 'oval' | 'hand-shaped' | 'spiky'
+		leafSize: 'small' | 'medium' | 'large'
+		growthPattern: 'upright' | 'bushy' | 'trailing' | 'climbing'
+		specialFeatures: Array<'variegated' | 'waxy' | 'fuzzy' | 'holes' | 'succulent' | 'colored'>
 	}
 
 	// Quick reference
@@ -108,7 +108,7 @@ export interface Room {
 // User's plant instance
 export interface UserPlant {
 	id: string
-	speciesId: string // reference to PlantSpecies
+	speciesId: string // reference to PlantSpecies OR 'custom' for custom plants
 	customName: string // user's nickname for the plant
 	dateAdded: string // ISO date
 
@@ -118,6 +118,13 @@ export interface UserPlant {
 	// Current Status
 	size: PlantSize
 	condition: PlantCondition
+
+	// Custom plant fields (when isCustomPlant === true)
+	isCustomPlant?: boolean
+	customScientificName?: string // optional scientific name for custom plants
+	customCheckFrequency?: number // check frequency in days for custom plants
+	customLightLevel?: LightLevel // light requirements for custom plants
+	customCareNotes?: string // user's own care instructions
 
 	// Optional
 	notes?: string // user's personal notes

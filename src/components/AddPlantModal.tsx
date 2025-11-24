@@ -17,6 +17,7 @@ import { PLANT_DATABASE } from '../data/plantDatabase'
 import type { PlantSize, PlantCondition } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { RoomManagementModal } from './RoomManagementModal'
+import { CustomPlantModal } from './CustomPlantModal'
 
 interface AddPlantModalProps {
 	isOpen: boolean
@@ -34,6 +35,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	const [condition, setCondition] = useState<PlantCondition>('just-added')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
+	const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
 
 	const addPlant = usePlantStore((state) => state.addPlant)
 	const rooms = useRoomStore((state) => state.rooms)
@@ -79,6 +81,15 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 		onClose()
 	}
 
+	const handleCustomPlantClick = () => {
+		setIsCustomModalOpen(true)
+	}
+
+	const handleCustomPlantClose = () => {
+		setIsCustomModalOpen(false)
+		handleClose() // Close parent modal too
+	}
+
 	const selectedSpecies = PLANT_DATABASE.find((p) => p.id === selectedSpeciesId)
 
 	// Keyboard shortcuts
@@ -92,220 +103,237 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	useEscapeKey(handleClose, isOpen)
 
 	return (
-		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
-			<DialogBackdrop />
-			<DialogContent
-				maxH={{ base: '95vh', md: '90vh' }}
-				position="fixed"
-				top="50%"
-				left="50%"
-				transform="translate(-50%, -50%)"
-				zIndex={1400}
-				bg="white"
-				borderRadius="lg"
-				boxShadow="xl"
-			>
-				<DialogHeader>
-					<DialogTitle>
-						{step === 'select-plant' ? 'Choose Your Plant Type' : 'Plant Details'}
-					</DialogTitle>
-					<DialogCloseTrigger />
-				</DialogHeader>
+		<>
+			<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
+				<DialogBackdrop />
+				<DialogContent
+					maxH={{ base: '95vh', md: '90vh' }}
+					position="fixed"
+					top="50%"
+					left="50%"
+					transform="translate(-50%, -50%)"
+					zIndex={1400}
+					bg="white"
+					borderRadius="lg"
+					boxShadow="xl"
+				>
+					<DialogHeader>
+						<DialogTitle>
+							{step === 'select-plant' ? 'Choose Your Plant Type' : 'Plant Details'}
+						</DialogTitle>
+						<DialogCloseTrigger />
+					</DialogHeader>
 
-				<DialogBody overflowY="auto" maxH={{ base: '70vh', md: '60vh' }}>
-					{/* STEP 1: Select Plant */}
-					{step === 'select-plant' && (
-						<VStack gap={4} align="stretch">
-							<Text fontSize="sm" color="gray.600">
-								Select your plant type:
-							</Text>
+					<DialogBody overflowY="auto" maxH={{ base: '70vh', md: '60vh' }}>
+						{/* STEP 1: Select Plant */}
+						{step === 'select-plant' && (
+							<VStack gap={4} align="stretch">
+								<Text fontSize="sm" color="gray.600">
+									Select your plant type:
+								</Text>
 
-							<SimpleGrid columns={{ base: 1, sm: 2 }} gap={3}>
-								{PLANT_DATABASE.map((plant) => (
-									<Card.Root
-										key={plant.id}
-										variant="outline"
-										cursor="pointer"
-										onClick={() => handleSelectPlant(plant.id)}
-										_hover={{ borderColor: 'green.400', shadow: 'md' }}
-									>
-										<Card.Body p={3}>
-											<VStack align="start" gap={1}>
-												<Text fontWeight="bold" fontSize="sm">
-													{plant.commonName}
-												</Text>
-												<Text fontSize="xs" color="gray.600">
-													{plant.scientificName}
-												</Text>
-												<HStack>
-													<Badge colorScheme="green" fontSize="xs">
-														{plant.careLevel}
-													</Badge>
-													{plant.petSafe && (
-														<Badge colorScheme="blue" fontSize="xs">
-															Pet safe
+								<SimpleGrid columns={{ base: 1, sm: 2 }} gap={3}>
+									{PLANT_DATABASE.map((plant) => (
+										<Card.Root
+											key={plant.id}
+											variant="outline"
+											cursor="pointer"
+											onClick={() => handleSelectPlant(plant.id)}
+											_hover={{ borderColor: 'green.400', shadow: 'md' }}
+										>
+											<Card.Body p={3}>
+												<VStack align="start" gap={1}>
+													<Text fontWeight="bold" fontSize="sm">
+														{plant.commonName}
+													</Text>
+													<Text fontSize="xs" color="gray.600">
+														{plant.scientificName}
+													</Text>
+													<HStack>
+														<Badge colorScheme="green" fontSize="xs">
+															{plant.careLevel}
 														</Badge>
-													)}
-												</HStack>
-											</VStack>
-										</Card.Body>
-									</Card.Root>
-								))}
-							</SimpleGrid>
-						</VStack>
-					)}
+														{plant.petSafe && (
+															<Badge colorScheme="blue" fontSize="xs">
+																Pet safe
+															</Badge>
+														)}
+													</HStack>
+												</VStack>
+											</Card.Body>
+										</Card.Root>
+									))}
+								</SimpleGrid>
 
-					{/* STEP 2: All Details */}
-					{step === 'details' && (
-						<VStack gap={4} align="stretch">
-							<Box bg="green.50" p={3} borderRadius="md">
-								<Text fontSize="sm" fontWeight="bold" color="green.800">
-									{selectedSpecies?.commonName}
-								</Text>
-								<Text fontSize="xs" color="green.700">
-									{selectedSpecies?.scientificName} • {selectedSpecies?.careLevel}
-								</Text>
-							</Box>
-
-							<Box>
-								<Text fontSize="sm" fontWeight="bold" mb={2}>
-									Give your plant a friendly name:
-								</Text>
-								<Input
-									placeholder="e.g., Monty, Fred, Steve..."
-									value={customName}
-									onChange={(e) => setCustomName(e.target.value)}
-									autoFocus
-								/>
-							</Box>
-
-							<Box>
-								<HStack justify="space-between" align="start" mb={2}>
-									<Text fontSize="sm" fontWeight="bold">
-										Location:
-									</Text>
+								<Box borderTop="1px solid" borderColor="gray.200" pt={4} mt={2}>
 									<Button
-										size="xs"
-										variant="ghost"
-										colorScheme="green"
-										onClick={() => setIsRoomModalOpen(true)}
-										px={2}
+										variant="outline"
+										colorScheme="blue"
+										width="full"
+										onClick={handleCustomPlantClick}
+										size="md"
 									>
-										🏠 Manage Rooms
+										🌱 Can't find your plant? Add a custom one
 									</Button>
-								</HStack>
-								<NativeSelectRoot>
-									<NativeSelectField
-										value={selectedRoomId}
-										onChange={(e) => setSelectedRoomId(e.target.value)}
-									>
-										{rooms.map((room) => (
-											<option key={room.id} value={room.id}>
-												{room.name} ({room.lightLevel} light, {room.temperature})
-											</option>
+								</Box>
+							</VStack>
+						)}
+
+						{/* STEP 2: All Details */}
+						{step === 'details' && (
+							<VStack gap={4} align="stretch">
+								<Box bg="green.50" p={3} borderRadius="md">
+									<Text fontSize="sm" fontWeight="bold" color="green.800">
+										{selectedSpecies?.commonName}
+									</Text>
+									<Text fontSize="xs" color="green.700">
+										{selectedSpecies?.scientificName} • {selectedSpecies?.careLevel}
+									</Text>
+								</Box>
+
+								<Box>
+									<Text fontSize="sm" fontWeight="bold" mb={2}>
+										Give your plant a friendly name:
+									</Text>
+									<Input
+										placeholder="e.g., Monty, Fred, Steve..."
+										value={customName}
+										onChange={(e) => setCustomName(e.target.value)}
+										autoFocus
+									/>
+								</Box>
+
+								<Box>
+									<HStack justify="space-between" align="start" mb={2}>
+										<Text fontSize="sm" fontWeight="bold">
+											Location:
+										</Text>
+										<Button
+											size="xs"
+											variant="ghost"
+											colorScheme="green"
+											onClick={() => setIsRoomModalOpen(true)}
+											px={2}
+										>
+											🏠 Manage Rooms
+										</Button>
+									</HStack>
+									<NativeSelectRoot>
+										<NativeSelectField
+											value={selectedRoomId}
+											onChange={(e) => setSelectedRoomId(e.target.value)}
+										>
+											{rooms.map((room) => (
+												<option key={room.id} value={room.id}>
+													{room.name} ({room.lightLevel} light, {room.temperature})
+												</option>
+											))}
+										</NativeSelectField>
+									</NativeSelectRoot>
+									<Text fontSize="xs" color="gray.500" mt={1}>
+										Where will you keep this plant?
+									</Text>
+								</Box>
+
+								<Box>
+									<Text fontSize="sm" fontWeight="bold" mb={1}>
+										Current size:
+									</Text>
+									<Text fontSize="xs" color="gray.500" mb={2}>
+										Approximate pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)
+									</Text>
+									<HStack gap={2}>
+										{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
+											<Button
+												key={s}
+												size="sm"
+												variant={size === s ? 'solid' : 'outline'}
+												colorScheme={size === s ? 'green' : 'gray'}
+												onClick={() => setSize(s)}
+												flex={1}
+											>
+												{s}
+											</Button>
 										))}
-									</NativeSelectField>
-								</NativeSelectRoot>
-								<Text fontSize="xs" color="gray.500" mt={1}>
-									Where will you keep this plant?
-								</Text>
-							</Box>
+									</HStack>
+								</Box>
 
-							<Box>
-								<Text fontSize="sm" fontWeight="bold" mb={1}>
-									Current size:
-								</Text>
-								<Text fontSize="xs" color="gray.500" mb={2}>
-									Approximate pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)
-								</Text>
-								<HStack gap={2}>
-									{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
-										<Button
-											key={s}
-											size="sm"
-											variant={size === s ? 'solid' : 'outline'}
-											colorScheme={size === s ? 'green' : 'gray'}
-											onClick={() => setSize(s)}
-											flex={1}
-										>
-											{s}
-										</Button>
-									))}
-								</HStack>
-							</Box>
+								<Box>
+									<Text fontSize="sm" fontWeight="bold" mb={2}>
+										Current condition:
+									</Text>
+									<VStack gap={2}>
+										{([
+											{ value: 'just-added', label: 'Just added', emoji: '🆕' },
+											{ value: 'healthy', label: 'Healthy & thriving', emoji: '🌿' },
+											{ value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️' },
+											{ value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀' },
+										] as Array<{ value: PlantCondition; label: string; emoji: string }>).map((c) => (
+											<Button
+												key={c.value}
+												size="sm"
+												variant={condition === c.value ? 'solid' : 'outline'}
+												colorScheme={condition === c.value ? 'green' : 'gray'}
+												onClick={() => setCondition(c.value)}
+												width="full"
+												justifyContent="flex-start"
+											>
+												<Text mr={2}>{c.emoji}</Text>
+												{c.label}
+											</Button>
+										))}
+									</VStack>
+								</Box>
 
-							<Box>
-								<Text fontSize="sm" fontWeight="bold" mb={2}>
-									Current condition:
-								</Text>
-								<VStack gap={2}>
-									{([
-										{ value: 'just-added', label: 'Just added', emoji: '🆕' },
-										{ value: 'healthy', label: 'Healthy & thriving', emoji: '🌿' },
-										{ value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️' },
-										{ value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀' },
-									] as Array<{ value: PlantCondition; label: string; emoji: string }>).map((c) => (
-										<Button
-											key={c.value}
-											size="sm"
-											variant={condition === c.value ? 'solid' : 'outline'}
-											colorScheme={condition === c.value ? 'green' : 'gray'}
-											onClick={() => setCondition(c.value)}
-											width="full"
-											justifyContent="flex-start"
-										>
-											<Text mr={2}>{c.emoji}</Text>
-											{c.label}
-										</Button>
-									))}
-								</VStack>
-							</Box>
+								<Box>
+									<PhotoUpload
+										currentPhoto={photoUrl}
+										onPhotoChange={setPhotoUrl}
+										label="Plant Photo"
+									/>
+								</Box>
+							</VStack>
+						)}
+					</DialogBody>
 
-							<Box>
-								<PhotoUpload
-									currentPhoto={photoUrl}
-									onPhotoChange={setPhotoUrl}
-									label="Plant Photo"
-								/>
-							</Box>
-						</VStack>
-					)}
-				</DialogBody>
+					<DialogFooter>
+						{step === 'details' && (
+							<>
+								<Button
+									variant="ghost"
+									mr={3}
+									onClick={() => setStep('select-plant')}
+								>
+									Back
+								</Button>
+								<Button
+									colorScheme="green"
+									onClick={handleAddPlant}
+									disabled={!customName.trim()}
+								>
+									Add Plant
+								</Button>
+							</>
+						)}
+					</DialogFooter>
+				</DialogContent>
 
-				<DialogFooter>
-					{step === 'details' && (
-						<>
-							<Button
-								variant="ghost"
-								mr={3}
-								onClick={() => setStep('select-plant')}
-							>
-								Back
-							</Button>
-							<Button
-								colorScheme="green"
-								onClick={handleAddPlant}
-								disabled={!customName.trim()}
-							>
-								Add Plant
-							</Button>
-						</>
-					)}
-				</DialogFooter>
-			</DialogContent>
+				{/* Room Management Modal */}
+				<RoomManagementModal
+					isOpen={isRoomModalOpen}
+					onClose={() => {
+						setIsRoomModalOpen(false)
+						// Select the newly added room if one was added
+						if (rooms.length > 0) {
+							setSelectedRoomId(rooms[rooms.length - 1].id)
+						}
+					}}
+					nested={true}
+				/>
+			</DialogRoot>
 
-			{/* Room Management Modal */}
-			<RoomManagementModal
-				isOpen={isRoomModalOpen}
-				onClose={() => {
-					setIsRoomModalOpen(false)
-					// Select the newly added room if one was added
-					if (rooms.length > 0) {
-						setSelectedRoomId(rooms[rooms.length - 1].id)
-					}
-				}}
-				nested={true}
-			/>
-		</DialogRoot>
+			{/* Custom Plant Modal */}
+			<CustomPlantModal isOpen={isCustomModalOpen} onClose={handleCustomPlantClose} />
+		</>
 	)
 }
