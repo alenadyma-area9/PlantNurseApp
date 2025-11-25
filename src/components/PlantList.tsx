@@ -67,7 +67,8 @@ function SortablePlantCard({
 		'needs-attention': { color: 'orange', icon: '⚠️', label: 'Needs attention' },
 		'struggling': { color: 'red', icon: '🥀', label: 'Struggling' },
 	}
-	const plantCondition = conditionConfig[plant.condition as keyof typeof conditionConfig]
+	// Fallback to 'healthy' for old 'just-added' conditions or any invalid conditions
+	const plantCondition = conditionConfig[plant.condition as keyof typeof conditionConfig] || conditionConfig['healthy']
 
 	return (
 		<Card.Root
@@ -459,9 +460,11 @@ export function PlantList({ viewMode }: PlantListProps) {
 				{organizedPlants.map((group, groupIndex) => (
 					<Box key={groupIndex}>
 						{group.title && (
-							<Heading size="sm" mb={3} color="gray.700">
-								{group.title}
-							</Heading>
+							<Box maxW="800px" mx="auto" width="100%">
+								<Heading size="sm" mb={3} color="gray.700">
+									{group.title}
+								</Heading>
+							</Box>
 						)}
 
 						{group.plants.length === 0 ? (

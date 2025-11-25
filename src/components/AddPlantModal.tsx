@@ -343,7 +343,6 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 									</Text>
 									<VStack gap={2}>
 										{([
-											{ value: 'just-added', label: 'Just added', emoji: '🆕' },
 											{ value: 'healthy', label: 'Healthy & thriving', emoji: '🌿' },
 											{ value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️' },
 											{ value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀' },

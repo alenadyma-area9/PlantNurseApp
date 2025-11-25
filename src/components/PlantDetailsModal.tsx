@@ -53,6 +53,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const [isEditOpen, setIsEditOpen] = useState(false)
 	const [activeTab, setActiveTab] = useState<'care' | 'check-in' | 'history' | 'tips' | 'photos'>('care')
 	const [photoViewerIndex, setPhotoViewerIndex] = useState<number | null>(null)
+	const [currentViewingPhotoUrl, setCurrentViewingPhotoUrl] = useState<string | null>(null)
 	const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false)
 
 	// Check-in form state
@@ -132,16 +133,50 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 
 	// For custom plants, species will be null - that's OK
 
+	// Keep photo viewer on same photo when allPhotos array changes (e.g., after setting cover)
+	useEffect(() => {
+		if (photoViewerIndex !== null && currentViewingPhotoUrl && allPhotos.length > 0) {
+			const currentPhotoInViewer = allPhotos[photoViewerIndex]
+			// If the photo at current index doesn't match what we're viewing, find the correct index
+			if (currentPhotoInViewer?.url !== currentViewingPhotoUrl) {
+				const correctIndex = allPhotos.findIndex(p => p.url === currentViewingPhotoUrl)
+				if (correctIndex !== -1) {
+					setPhotoViewerIndex(correctIndex)
+				}
+			}
+		}
+	}, [allPhotos, photoViewerIndex, currentViewingPhotoUrl])
+
+	// Track which photo we're viewing
+	useEffect(() => {
+		if (photoViewerIndex !== null && allPhotos[photoViewerIndex]) {
+			setCurrentViewingPhotoUrl(allPhotos[photoViewerIndex].url)
+		}
+	}, [photoViewerIndex, allPhotos.length])
+
 	// Set photo as cover
 	const handleSetAsCover = () => {
 		if (photoViewerIndex !== null && allPhotos[photoViewerIndex]) {
-			const newCoverPhoto = allPhotos[photoViewerIndex].url
-			updatePlant(plant.id, { photoUrl: newCoverPhoto })
-			toaster.create({
-				title: 'Cover photo updated!',
-				type: 'success',
-				duration: 2000,
-			})
+			try {
+				const currentPhotoUrl = allPhotos[photoViewerIndex].url
+				// Store the photo URL we want to stay on - the useEffect will handle updating the index
+				setCurrentViewingPhotoUrl(currentPhotoUrl)
+				updatePlant(plant.id, { photoUrl: currentPhotoUrl })
+
+				toaster.create({
+					title: 'Cover photo updated!',
+					type: 'success',
+					duration: 2000,
+				})
+			} catch (error) {
+				console.error('Error setting cover photo:', error)
+				toaster.create({
+					title: 'Storage full!',
+					description: 'Delete some old photos to free up space',
+					type: 'error',
+					duration: 5000,
+				})
+			}
 		}
 	}
 
@@ -502,7 +537,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 		>
 					<DialogHeader>
 						<DialogTitle>
-							{conditionEmoji[plant.condition]} {plant.customName}
+							{conditionEmoji[plant.condition as keyof typeof conditionEmoji] || '🌿'} {plant.customName}
 						</DialogTitle>
 						<DialogCloseTrigger />
 					</DialogHeader>
@@ -633,7 +668,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								>
 									<Text display={{ base: 'none', sm: 'inline' }}>History</Text>
 									<Text display={{ base: 'inline', sm: 'none' }}>📜</Text>
-									{history.length > 0 && <Text ml={1}>({history.length})</Text>}
+									{history.length > 0 && <>({history.length})</>}
 								</Button>
 								<Button
 									size={{ base: 'xs', md: 'sm' }}
@@ -1584,6 +1619,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								justify="space-between"
 								bg="linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)"
 								color="white"
+								zIndex={10}
+								pointerEvents="auto"
 							>
 								<Text fontSize="sm" fontWeight="medium">
 									{photoViewerIndex + 1} / {allPhotos.length}
@@ -1606,12 +1643,13 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 										<Button
 											size="sm"
 											onClick={handleSetAsCover}
-											colorScheme="whiteAlpha"
+											colorScheme="blue"
 											variant="solid"
-											bg="whiteAlpha.200"
+											bg="blue.500"
 											color="white"
-											_hover={{ bg: 'whiteAlpha.300' }}
+											_hover={{ bg: 'blue.600' }}
 											fontSize="xs"
+											fontWeight="bold"
 										>
 											⭐ Set as Cover
 										</Button>
@@ -1639,6 +1677,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								justify="space-between"
 								bg="linear-gradient(to top, rgba(0,0,0,0.7), transparent)"
 								color="white"
+								zIndex={10}
+								pointerEvents="auto"
 							>
 								<Box>
 									<Text fontSize="sm" fontWeight="medium">
@@ -1680,6 +1720,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								color="white"
 								_hover={{ bg: 'whiteAlpha.400' }}
 								fontSize="xl"
+								zIndex={10}
 							>
 								←
 							</Button>
@@ -1696,6 +1737,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								color="white"
 								_hover={{ bg: 'whiteAlpha.400' }}
 								fontSize="xl"
+								zIndex={10}
 							>
 								→
 							</Button>

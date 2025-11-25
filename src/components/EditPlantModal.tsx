@@ -67,14 +67,34 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 
 	if (!plant) return null
 
+	// Collect all photos (current plant photo + check-in photos, avoiding duplicates)
 	const checkIns = getPlantCheckIns(plant.id)
-	const checkInPhotos = checkIns
-		.filter((checkIn) => checkIn.photoUrl)
-		.map((checkIn) => ({
-			id: checkIn.id,
-			url: checkIn.photoUrl!,
-			date: checkIn.date,
-		}))
+	const allPhotos: Array<{ id: string; url: string; date: string; label: string }> = []
+	const photoUrls = new Set<string>()
+
+	// Add current plant photo first (if exists)
+	if (plant.photoUrl) {
+		allPhotos.push({
+			id: 'current',
+			url: plant.photoUrl,
+			date: plant.dateAdded,
+			label: 'Current'
+		})
+		photoUrls.add(plant.photoUrl)
+	}
+
+	// Add check-in photos (avoiding duplicates)
+	checkIns.forEach((checkIn) => {
+		if (checkIn.photoUrl && !photoUrls.has(checkIn.photoUrl)) {
+			allPhotos.push({
+				id: checkIn.id,
+				url: checkIn.photoUrl,
+				date: checkIn.date,
+				label: 'Check-in'
+			})
+			photoUrls.add(checkIn.photoUrl)
+		}
+	})
 
 	// Keyboard shortcuts
 	const handleEnter = useCallback(() => {
@@ -273,14 +293,14 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 								label="Plant Photo"
 							  />
 
-							  {/* Previous Check-in Photos */}
-							  {checkInPhotos.length > 0 && (
+							  {/* Select from existing photos */}
+							  {allPhotos.length > 0 && (
 								<Box mt={3}>
 								  <Text fontSize="xs" color="gray.600" mb={2}>
-									Or select from check-in photos:
+									Or select from your photos:
 								  </Text>
 								  <SimpleGrid columns={{ base: 3, sm: 4 }} gap={2}>
-									{checkInPhotos.map((photo) => (
+									{allPhotos.map((photo) => (
 									  <Box
 										key={photo.id}
 										cursor="pointer"
@@ -291,16 +311,17 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 										borderColor={photoUrl === photo.url ? 'green.500' : 'transparent'}
 										transition="all 0.2s"
 										_hover={{ borderColor: 'green.300' }}
+										position="relative"
 									  >
 										<ChakraImage
 										  src={photo.url}
-										  alt={`Check-in from ${new Date(photo.date).toLocaleDateString()}`}
+										  alt={photo.label}
 										  width="100%"
 										  height="60px"
 										  objectFit="cover"
 										/>
 										<Text fontSize="2xs" textAlign="center" py={1} color="gray.500">
-										  {new Date(photo.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+										  {photo.label === 'Current' ? '✓ Current' : new Date(photo.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
 										</Text>
 									  </Box>
 									))}

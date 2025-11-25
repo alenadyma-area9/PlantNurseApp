@@ -309,19 +309,6 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 									</Button>
 								))}
 							</SimpleGrid>
-
-							{leafConditions.length > 0 && (
-								<HStack mt={2} flexWrap="wrap" gap={1}>
-									{leafConditions.map((condition) => {
-										const option = leafOptions.find((o) => o.value === condition)
-										return (
-											<Badge key={condition} colorScheme={option?.color || 'gray'} fontSize="xs">
-												{option?.emoji} {option?.label}
-											</Badge>
-										)
-									})}
-								</HStack>
-							)}
 						</Box>
 
 						{/* Step 4: Actions Taken */}

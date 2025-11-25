@@ -210,6 +210,17 @@ export const usePlantStore = create<PlantStore>()(
 		}),
 		{
 			name: 'plant-nurse-storage', // localStorage key
+			onRehydrateStorage: () => (state) => {
+				// Migrate old 'just-added' conditions to 'healthy'
+				if (state?.plants) {
+					state.plants = state.plants.map((plant) => {
+						if ((plant.condition as any) === 'just-added') {
+							return { ...plant, condition: 'healthy' }
+						}
+						return plant
+					})
+				}
+			},
 		}
 	)
 )
