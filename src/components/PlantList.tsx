@@ -63,7 +63,6 @@ function SortablePlantCard({
 
 	// Plant HEALTH condition - how the plant is feeling (most important!)
 	const conditionConfig = {
-		'just-added': { color: 'blue', icon: '🆕', label: 'Just added' },
 		'healthy': { color: 'green', icon: '✓', label: 'Healthy' },
 		'needs-attention': { color: 'orange', icon: '⚠️', label: 'Needs attention' },
 		'struggling': { color: 'red', icon: '🥀', label: 'Struggling' },
@@ -407,7 +406,7 @@ export function PlantList({ viewMode }: PlantListProps) {
 
 		case 'by-health':
 			// Sort by health condition (worse to better)
-			const healthOrder = { 'struggling': 0, 'needs-attention': 1, 'just-added': 2, 'healthy': 3 }
+			const healthOrder = { 'struggling': 0, 'needs-attention': 1, 'healthy': 2 }
 			const sortedByHealth = [...plantsWithData].sort((a, b) => {
 				return healthOrder[a.plant.condition as keyof typeof healthOrder] -
 				       healthOrder[b.plant.condition as keyof typeof healthOrder]

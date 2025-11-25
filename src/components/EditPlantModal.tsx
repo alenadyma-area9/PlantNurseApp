@@ -47,7 +47,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	const [customName, setCustomName] = useState('')
 	const [selectedRoomId, setSelectedRoomId] = useState('')
 	const [size, setSize] = useState<PlantSize>('small')
-	const [condition, setCondition] = useState<PlantCondition>('just-added')
+	const [condition, setCondition] = useState<PlantCondition>('healthy')
 	const [careNotes, setCareNotes] = useState('')
 	const [notes, setNotes] = useState('')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
@@ -210,7 +210,6 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 								</Text>
 								<VStack gap={2}>
 									{([
-										{ value: 'just-added', label: 'Just added', emoji: '🆕' },
 										{ value: 'healthy', label: 'Healthy & thriving', emoji: '🌿' },
 										{ value: 'needs-attention', label: 'Needs some attention', emoji: '⚠️' },
 										{ value: 'struggling', label: 'Struggling / Not doing well', emoji: '🥀' },

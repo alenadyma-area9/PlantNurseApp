@@ -412,7 +412,6 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 
 	// Condition emoji
 	const conditionEmoji = {
-		'just-added': '🆕',
 		'healthy': '🌿',
 		'needs-attention': '⚠️',
 		'struggling': '🥀',

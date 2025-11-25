@@ -4,7 +4,7 @@ export type CareLevel = 'beginner' | 'intermediate' | 'advanced'
 
 export type PlantSize = 'small' | 'medium' | 'large'
 
-export type PlantCondition = 'healthy' | 'needs-attention' | 'struggling' | 'just-added'
+export type PlantCondition = 'healthy' | 'needs-attention' | 'struggling'
 
 export type WindowDirection = 'north' | 'south' | 'east' | 'west' | 'none'
 

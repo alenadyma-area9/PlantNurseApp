@@ -31,7 +31,7 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 	const [lightLevel, setLightLevel] = useState<LightLevel>('medium')
 	const [selectedRoomId, setSelectedRoomId] = useState<string>(DEFAULT_ROOM_ID)
 	const [size, setSize] = useState<PlantSize>('small')
-	const [condition, setCondition] = useState<PlantCondition>('just-added')
+	const [condition, setCondition] = useState<PlantCondition>('healthy')
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
 
@@ -91,7 +91,7 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 		setLightLevel('medium')
 		setSelectedRoomId(DEFAULT_ROOM_ID)
 		setSize('small')
-		setCondition('just-added')
+		setCondition('healthy')
 		setPhotoUrl(undefined)
 		setLeafShape('')
 		setLeafSize('')
