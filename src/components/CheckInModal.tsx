@@ -181,7 +181,8 @@ export function CheckInModal({ plantId, isOpen, onClose }: CheckInModalProps) {
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
 			<DialogBackdrop />
 			<DialogContent
-				maxH="90vh"
+				maxW={{ base: '90vw', sm: '85vw', md: '600px' }}
+				maxH={{ base: '90vh', md: '85vh' }}
 				position="fixed"
 				top="50%"
 				left="50%"

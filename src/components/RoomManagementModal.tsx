@@ -26,6 +26,7 @@ import { Tooltip } from './Tooltip'
 import { useRoomStore, DEFAULT_ROOM_ID } from '../store/roomStore'
 import { usePlantStore } from '../store/plantStore'
 import type { LightLevel, WindowDirection, RoomTemperature } from '../types'
+import { getLightLevelIcon } from '../utils/lightLevelUtils'
 
 interface RoomManagementModalProps {
 	isOpen: boolean
@@ -195,7 +196,7 @@ export function RoomManagementModal({ isOpen, onClose, nested = false }: RoomMan
 															)}
 														</HStack>
 														<HStack gap={2} fontSize="xs" color="gray.600" flexWrap="wrap">
-															<Text>💡 {room.lightLevel}</Text>
+															<Text>{getLightLevelIcon(room.lightLevel)} {room.lightLevel}</Text>
 															<Text>🌡️ {room.temperature}</Text>
 														</HStack>
 													</VStack>

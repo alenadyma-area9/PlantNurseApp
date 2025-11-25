@@ -31,19 +31,20 @@ function App() {
 					</Box>
 
 					{/* Controls Bar - Add, View, Settings */}
-					<HStack gap={2} flexWrap="nowrap" justify="space-between">
-						{/* Add Plant Button */}
-						<Button
-							colorScheme="green"
-							size="md"
-							onClick={() => setIsAddPlantOpen(true)}
-							flexShrink={0}
-						>
-							+ Add Plant
-						</Button>
+					<Box maxW="800px" mx="auto" width="100%">
+						<HStack gap={2} flexWrap="nowrap" justify="space-between">
+							{/* Add Plant Button */}
+							<Button
+								colorScheme="green"
+								size="md"
+								onClick={() => setIsAddPlantOpen(true)}
+								flexShrink={0}
+							>
+								+ Add Plant
+							</Button>
 
-						{/* Right side controls: View Dropdown + Settings Icons */}
-						<HStack gap={2} flexShrink={0}>
+							{/* Right side controls: View Dropdown + Settings Icons */}
+							<HStack gap={2} flexShrink={0}>
 							{/* View Dropdown */}
 							<NativeSelectRoot size={{ base: 'sm', md: 'md' }} width={{ base: '120px', sm: '140px', md: '160px' }}>
 								<NativeSelectField
@@ -82,7 +83,8 @@ function App() {
 								⚙️
 							</IconButton>
 						</HStack>
-					</HStack>
+						</HStack>
+					</Box>
 
 					{/* Plant List */}
 					<PlantList viewMode={viewMode} />
@@ -117,10 +119,18 @@ function App() {
 						borderRadius="md"
 						p={4}
 						boxShadow="lg"
+						maxW="400px"
 					>
-						{toast.title && <Toast.Title fontWeight="bold">{toast.title}</Toast.Title>}
-						{toast.description && <Toast.Description mt={1}>{toast.description}</Toast.Description>}
-						<Toast.CloseTrigger color="white" />
+						<VStack align="start" gap={1} pr={6}>
+							{toast.title && <Toast.Title fontWeight="bold" fontSize="md">{toast.title}</Toast.Title>}
+							{toast.description && <Toast.Description fontSize="sm">{toast.description}</Toast.Description>}
+						</VStack>
+						<Toast.CloseTrigger
+							color="white"
+							position="absolute"
+							top={2}
+							right={2}
+						/>
 					</Toast.Root>
 				)}
 			</Toaster>

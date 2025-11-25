@@ -19,6 +19,8 @@ import type { PlantSize, PlantCondition } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { RoomManagementModal } from './RoomManagementModal'
 import { CustomPlantModal } from './CustomPlantModal'
+import { getLightLevelIcon } from '../utils/lightLevelUtils'
+import { toaster } from '../main'
 
 interface AddPlantModalProps {
 	isOpen: boolean
@@ -38,6 +40,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
 	const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
+	const [isSubmitting, setIsSubmitting] = useState(false)
 
 	const addPlant = usePlantStore((state) => state.addPlant)
 	const rooms = useRoomStore((state) => state.rooms)
@@ -60,17 +63,29 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 	}
 
 	const handleAddPlant = () => {
-		if (selectedSpeciesId && customName.trim() && selectedRoomId) {
-			addPlant({
-				speciesId: selectedSpeciesId,
-				customName: customName.trim(),
-				roomId: selectedRoomId,
-				size,
-				condition,
-				photoUrl,
-				notes: notes.trim() || undefined,
-			})
-			handleClose()
+		if (selectedSpeciesId && customName.trim() && selectedRoomId && !isSubmitting) {
+			setIsSubmitting(true)
+			try {
+				addPlant({
+					speciesId: selectedSpeciesId,
+					customName: customName.trim(),
+					roomId: selectedRoomId,
+					size,
+					condition,
+					photoUrl,
+					notes: notes.trim() || undefined,
+				})
+				handleClose()
+			} catch (error) {
+				console.error('Error adding plant:', error)
+				toaster.create({
+					title: 'Storage full',
+					description: 'Try removing some photos to free up space',
+					type: 'error',
+					duration: 5000,
+				})
+				setIsSubmitting(false)
+			}
 		}
 	}
 
@@ -83,6 +98,7 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 		setCondition('just-added')
 		setNotes('')
 		setPhotoUrl(undefined)
+		setIsSubmitting(false)
 		onClose()
 	}
 
@@ -112,7 +128,8 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 			<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
 				<DialogBackdrop />
 				<DialogContent
-					maxH={{ base: '95vh', md: '90vh' }}
+					maxW={{ base: '90vw', sm: '85vw', md: '700px' }}
+					maxH={{ base: '90vh', md: '85vh' }}
 					position="fixed"
 					top="50%"
 					left="50%"
@@ -265,14 +282,15 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 											🏠 Manage Rooms
 										</Button>
 									</HStack>
-									<NativeSelectRoot>
+									<NativeSelectRoot size={{ base: 'md', md: 'sm' }}>
 										<NativeSelectField
 											value={selectedRoomId}
 											onChange={(e) => setSelectedRoomId(e.target.value)}
+											minH="44px"
 										>
 											{rooms.map((room) => (
 												<option key={room.id} value={room.id}>
-													{room.name} ({room.lightLevel} light, {room.temperature})
+													{room.name} ({getLightLevelIcon(room.lightLevel)} {room.lightLevel}, {room.temperature})
 												</option>
 											))}
 										</NativeSelectField>
@@ -283,27 +301,39 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 								</Box>
 
 								<Box>
-									<Text fontSize="sm" fontWeight="bold" mb={1}>
+									<Text fontSize="sm" fontWeight="bold" mb={2}>
 										Current size:
 									</Text>
-									<Text fontSize="xs" color="gray.500" mb={2}>
-										{distanceUnit === 'cm'
-											? 'Approximate pot diameter: Small (10-15cm), Medium (15-25cm), Large (25cm+)'
-											: 'Approximate pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)'}
-									</Text>
-									<HStack gap={2}>
-										{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
-											<Button
-												key={s}
-												size="sm"
-												variant={size === s ? 'solid' : 'outline'}
-												colorScheme={size === s ? 'green' : 'gray'}
-												onClick={() => setSize(s)}
-												flex={1}
-											>
-												{s}
-											</Button>
-										))}
+									<HStack gap={2} flexWrap="wrap">
+										{(['small', 'medium', 'large'] as PlantSize[]).map((s) => {
+											const sizeLabel = distanceUnit === 'cm'
+												? s === 'small' ? 'Small (10-15cm)'
+												: s === 'medium' ? 'Medium (15-25cm)'
+												: 'Large (25cm+)'
+												: s === 'small' ? 'Small (4-6")'
+												: s === 'medium' ? 'Medium (6-10")'
+												: 'Large (10"+)'
+
+											return (
+												<Button
+													key={s}
+													size={{ base: 'md', md: 'sm' }}
+													variant={size === s ? 'solid' : 'outline'}
+													colorScheme={size === s ? 'green' : 'gray'}
+													onClick={() => setSize(s)}
+													flex={1}
+													fontSize="xs"
+													height="auto"
+													py={2}
+													whiteSpace="normal"
+													textAlign="center"
+													lineHeight="short"
+													minH="44px"
+												>
+													{sizeLabel}
+												</Button>
+											)
+										})}
 									</HStack>
 								</Box>
 
@@ -320,12 +350,13 @@ export function AddPlantModal({ isOpen, onClose }: AddPlantModalProps) {
 										] as Array<{ value: PlantCondition; label: string; emoji: string }>).map((c) => (
 											<Button
 												key={c.value}
-												size="sm"
+												size={{ base: 'md', md: 'sm' }}
 												variant={condition === c.value ? 'solid' : 'outline'}
 												colorScheme={condition === c.value ? 'green' : 'gray'}
 												onClick={() => setCondition(c.value)}
 												width="full"
 												justifyContent="flex-start"
+												minH="44px"
 											>
 												<Text mr={2}>{c.emoji}</Text>
 												{c.label}

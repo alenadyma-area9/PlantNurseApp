@@ -31,6 +31,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && onClose()} placement="center">
 			<DialogBackdrop />
 			<DialogContent
+				maxW={{ base: '90vw', sm: '85vw', md: '500px' }}
+				maxH={{ base: '90vh', md: '85vh' }}
 				position="fixed"
 				top="50%"
 				left="50%"

@@ -17,6 +17,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import type { PlantSize, PlantCondition, LightLevel } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { RoomManagementModal } from './RoomManagementModal'
+import { getLightLevelIcon } from '../utils/lightLevelUtils'
 
 interface CustomPlantModalProps {
 	isOpen: boolean
@@ -115,7 +116,8 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 		<DialogRoot open={isOpen} onOpenChange={(e) => !e.open && handleClose()} size="xl" placement="center">
 			<DialogBackdrop />
 			<DialogContent
-				maxH={{ base: '95vh', md: '90vh' }}
+				maxW={{ base: '90vw', sm: '85vw', md: '700px' }}
+				maxH={{ base: '90vh', md: '85vh' }}
 				position="fixed"
 				top="50%"
 				left="50%"
@@ -366,7 +368,7 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 								>
 									{rooms.map((room) => (
 										<option key={room.id} value={room.id}>
-											{room.name} ({room.lightLevel} light, {room.temperature})
+											{room.name} ({getLightLevelIcon(room.lightLevel)} {room.lightLevel}, {room.temperature})
 										</option>
 									))}
 								</NativeSelectField>
@@ -374,27 +376,39 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 						</Box>
 
 						<Box>
-							<Text fontSize="sm" fontWeight="bold" mb={1}>
+							<Text fontSize="sm" fontWeight="bold" mb={2}>
 								Size:
 							</Text>
-							<Text fontSize="xs" color="gray.500" mb={2}>
-								{distanceUnit === 'cm'
-									? 'Pot diameter: Small (10-15cm), Medium (15-25cm), Large (25cm+)'
-									: 'Pot diameter: Small (4-6"), Medium (6-10"), Large (10"+)'}
-							</Text>
-							<HStack gap={2}>
-								{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
-									<Button
-										key={s}
-										size="sm"
-										variant={size === s ? 'solid' : 'outline'}
-										colorScheme={size === s ? 'green' : 'gray'}
-										onClick={() => setSize(s)}
-										flex={1}
-									>
-										{s}
-									</Button>
-								))}
+							<HStack gap={2} flexWrap="wrap">
+								{(['small', 'medium', 'large'] as PlantSize[]).map((s) => {
+									const sizeLabel = distanceUnit === 'cm'
+										? s === 'small' ? 'Small (10-15cm)'
+										: s === 'medium' ? 'Medium (15-25cm)'
+										: 'Large (25cm+)'
+										: s === 'small' ? 'Small (4-6")'
+										: s === 'medium' ? 'Medium (6-10")'
+										: 'Large (10"+)'
+
+									return (
+										<Button
+											key={s}
+											size={{ base: 'md', md: 'sm' }}
+											variant={size === s ? 'solid' : 'outline'}
+											colorScheme={size === s ? 'green' : 'gray'}
+											onClick={() => setSize(s)}
+											flex={1}
+											fontSize="xs"
+											height="auto"
+											py={2}
+											whiteSpace="normal"
+											textAlign="center"
+											lineHeight="short"
+											minH="44px"
+										>
+											{sizeLabel}
+										</Button>
+									)
+								})}
 							</HStack>
 						</Box>
 

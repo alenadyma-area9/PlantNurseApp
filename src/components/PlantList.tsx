@@ -23,6 +23,7 @@ import { getPlantById } from '../data/plantDatabase'
 import { CheckInModal } from './CheckInModal'
 import { PlantDetailsModal } from './PlantDetailsModal'
 import { formatTimeAgo } from '../utils/timeUtils'
+import { getLightLevelIcon } from '../utils/lightLevelUtils'
 
 export type ViewMode = 'all' | 'by-room' | 'by-health' | 'by-next-check' | 'by-care-level'
 
@@ -70,7 +71,16 @@ function SortablePlantCard({
 	const plantCondition = conditionConfig[plant.condition as keyof typeof conditionConfig]
 
 	return (
-		<Card.Root key={plant.id} variant="outline" ref={setNodeRef} style={style} userSelect="none">
+		<Card.Root
+			key={plant.id}
+			variant="outline"
+			ref={setNodeRef}
+			style={style}
+			userSelect="none"
+			maxW="800px"
+			mx="auto"
+			width="100%"
+		>
 			<Card.Body p={{ base: 3, md: 4 }}>
 				<VStack gap={3} align="stretch" userSelect="auto">
 					{/* Header: Drag handle + Plant Name */}
@@ -89,23 +99,41 @@ function SortablePlantCard({
 								⋮⋮
 							</Box>
 						)}
-						<Text
-							fontSize={{ base: 'lg', md: 'xl' }}
-							fontWeight="bold"
+						<Box
 							flex={1}
 							cursor="pointer"
 							onClick={onDetails}
-							_hover={{ color: 'green.600', textDecoration: 'underline' }}
-							lineClamp={1}
+							_hover={{ bg: 'green.50' }}
+							borderRadius="md"
+							px={2}
+							py={1}
+							mx={-2}
+							transition="background-color 0.2s"
 						>
-							{plant.customName}
-						</Text>
+							<Text
+								fontSize={{ base: 'lg', md: 'xl' }}
+								fontWeight="bold"
+								lineClamp={1}
+								color="gray.800"
+								_groupHover={{ color: 'green.600' }}
+							>
+								{plant.customName}
+							</Text>
+						</Box>
 					</HStack>
 
 					{/* Content Row: Photo + Plant Info */}
 					<HStack gap={4} align="start">
-						{/* Photo - Fixed space */}
-						<Box flexShrink={0} width="80px" height="80px">
+						{/* Photo - Fixed space - Clickable */}
+						<Box
+							flexShrink={0}
+							width="80px"
+							height="80px"
+							cursor="pointer"
+							onClick={onDetails}
+							_hover={{ opacity: 0.8, transform: 'scale(1.05)' }}
+							transition="all 0.2s"
+						>
 							{plant.photoUrl ? (
 								<ChakraImage
 									src={plant.photoUrl}
@@ -179,7 +207,7 @@ function SortablePlantCard({
 								{/* Room Info */}
 								{room && (
 									<Text lineClamp={1}>
-										📍 {room.name} ({room.lightLevel} light)
+										📍 {room.name} ({getLightLevelIcon(room.lightLevel)} {room.lightLevel})
 									</Text>
 								)}
 							</VStack>
@@ -204,8 +232,7 @@ function SortablePlantCard({
 							</Text>
 							{nextCheckDate && (
 								<Text lineClamp={1}>
-									Check every {plant.isCustomPlant ? plant.customCheckFrequency : species?.watering.checkFrequency} days, next:{' '}
-									{nextCheckDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+									Next check: {nextCheckDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (every {plant.isCustomPlant ? plant.customCheckFrequency : species?.watering.checkFrequency} days)
 								</Text>
 							)}
 						</VStack>
@@ -218,7 +245,7 @@ function SortablePlantCard({
 						>
 							<HStack gap={2}>
 								<Button
-									size="sm"
+									size={{ base: 'md', md: 'sm' }}
 									variant="outline"
 									onClick={(e) => {
 										e.preventDefault()
@@ -226,11 +253,12 @@ function SortablePlantCard({
 										onDetails()
 									}}
 									onPointerDown={(e) => e.stopPropagation()}
+									minH="44px"
 								>
 									Details
 								</Button>
 								<Button
-									size="sm"
+									size={{ base: 'md', md: 'sm' }}
 									colorScheme="green"
 									onClick={(e) => {
 										e.preventDefault()
@@ -238,6 +266,7 @@ function SortablePlantCard({
 										onCheckIn()
 									}}
 									onPointerDown={(e) => e.stopPropagation()}
+									minH="44px"
 								>
 									Check-in
 								</Button>

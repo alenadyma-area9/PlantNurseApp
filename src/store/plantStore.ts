@@ -19,7 +19,7 @@ interface PlantStore {
 	reorderPlants: (plantIds: string[]) => void
 
 	// Check-in actions
-	addCheckIn: (checkIn: Omit<PlantCheckIn, 'id' | 'date'>) => void
+	addCheckIn: (checkIn: Omit<PlantCheckIn, 'id' | 'date'>, customDate?: string) => void
 	getPlantCheckIns: (plantId: string) => PlantCheckIn[]
 	getLastCheckIn: (plantId: string) => PlantCheckIn | undefined
 
@@ -105,11 +105,11 @@ export const usePlantStore = create<PlantStore>()(
 				})
 			},
 
-			addCheckIn: (checkInData) => {
+			addCheckIn: (checkInData, customDate) => {
 				const newCheckIn: PlantCheckIn = {
 					...checkInData,
 					id: crypto.randomUUID(),
-					date: new Date().toISOString(),
+					date: customDate || new Date().toISOString(),
 				}
 				set((state) => ({
 					checkIns: [...state.checkIns, newCheckIn],

@@ -1,7 +1,8 @@
 /**
  * Compress and convert image to base64
+ * More aggressive compression to save localStorage space
  */
-export async function compressImage(file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> {
+export async function compressImage(file: File, maxWidth: number = 600, quality: number = 0.6): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const reader = new FileReader()
 

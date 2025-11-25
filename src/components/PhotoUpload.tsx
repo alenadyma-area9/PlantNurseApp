@@ -45,9 +45,11 @@ export function PhotoUpload({ currentPhoto, onPhotoChange, label = 'Photo' }: Ph
 
 	return (
 		<Box>
-			<Text fontSize="sm" fontWeight="bold" mb={2}>
-				{label} (optional)
-			</Text>
+			{label && (
+				<Text fontSize="sm" fontWeight="bold" mb={2}>
+					{label} (optional)
+				</Text>
+			)}
 
 			{currentPhoto ? (
 				<VStack gap={2} align="stretch">
@@ -87,20 +89,15 @@ export function PhotoUpload({ currentPhoto, onPhotoChange, label = 'Photo' }: Ph
 					</HStack>
 				</VStack>
 			) : (
-				<VStack gap={2} align="stretch">
-					<Button
-						size="sm"
-						variant="outline"
-						onClick={() => fileInputRef.current?.click()}
-						disabled={isUploading}
-						width="fit-content"
-					>
-						{isUploading ? '📤 Uploading...' : '📷 Add Photo'}
-					</Button>
-					<Text fontSize="xs" color="gray.500">
-						Take a photo or upload from gallery
-					</Text>
-				</VStack>
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={() => fileInputRef.current?.click()}
+					disabled={isUploading}
+					width="fit-content"
+				>
+					{isUploading ? '📤 Uploading...' : '📷 Add Photo'}
+				</Button>
 			)}
 
 			{error && (

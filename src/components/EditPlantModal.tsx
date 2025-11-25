@@ -25,9 +25,11 @@ import {
 } from '@chakra-ui/react'
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
+import { useSettingsStore } from '../store/settingsStore'
 import type { PlantSize, PlantCondition } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { RoomManagementModal } from './RoomManagementModal'
+import { getLightLevelIcon } from '../utils/lightLevelUtils'
 
 interface EditPlantModalProps {
 	plantId: string
@@ -40,6 +42,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	const updatePlant = usePlantStore((state) => state.updatePlant)
 	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
 	const rooms = useRoomStore((state) => state.rooms)
+	const distanceUnit = useSettingsStore((state) => state.distanceUnit)
 
 	const [customName, setCustomName] = useState('')
 	const [selectedRoomId, setSelectedRoomId] = useState('')
@@ -157,7 +160,7 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 									>
 										{rooms.map((room) => (
 											<option key={room.id} value={room.id}>
-												{room.name} ({room.lightLevel} light, {room.temperature})
+												{room.name} ({getLightLevelIcon(room.lightLevel)} {room.lightLevel}, {room.temperature})
 											</option>
 										))}
 									</NativeSelectField>
@@ -168,19 +171,36 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 								<Text fontSize="sm" fontWeight="bold" mb={2}>
 									Size:
 								</Text>
-								<HStack gap={2}>
-									{(['small', 'medium', 'large'] as PlantSize[]).map((s) => (
-										<Button
-											key={s}
-											size="sm"
-											variant={size === s ? 'solid' : 'outline'}
-											colorScheme={size === s ? 'green' : 'gray'}
-											onClick={() => setSize(s)}
-											flex={1}
-										>
-											{s}
-										</Button>
-									))}
+								<HStack gap={2} flexWrap="wrap">
+									{(['small', 'medium', 'large'] as PlantSize[]).map((s) => {
+										const sizeLabel = distanceUnit === 'cm'
+											? s === 'small' ? 'Small (10-15cm)'
+											: s === 'medium' ? 'Medium (15-25cm)'
+											: 'Large (25cm+)'
+											: s === 'small' ? 'Small (4-6")'
+											: s === 'medium' ? 'Medium (6-10")'
+											: 'Large (10"+)'
+
+										return (
+											<Button
+												key={s}
+												size={{ base: 'md', md: 'sm' }}
+												variant={size === s ? 'solid' : 'outline'}
+												colorScheme={size === s ? 'green' : 'gray'}
+												onClick={() => setSize(s)}
+												flex={1}
+												fontSize="xs"
+												height="auto"
+												py={2}
+												whiteSpace="normal"
+												textAlign="center"
+												lineHeight="short"
+												minH="44px"
+											>
+												{sizeLabel}
+											</Button>
+										)
+									})}
 								</HStack>
 							</Box>
 

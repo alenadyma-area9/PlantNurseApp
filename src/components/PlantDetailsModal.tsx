@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
 	DialogRoot,
 	DialogContent,
@@ -27,6 +27,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { getPlantById } from '../data/plantDatabase'
 import { EditPlantModal } from './EditPlantModal'
 import { PhotoUpload } from './PhotoUpload'
+import { Tooltip } from './Tooltip'
 import { formatTemperatureRange, formatDistance, formatIdealTemperature } from '../utils/unitConversion'
 import type { SoilMoisture, LeafCondition, CheckInAction, PlantCondition } from '../types'
 import { toaster } from '../main'
@@ -41,7 +42,6 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const plant = usePlantStore((state) => state.plants.find((p) => p.id === plantId))
 	const removePlant = usePlantStore((state) => state.removePlant)
 	const getPlantHistory = usePlantStore((state) => state.getPlantHistory)
-	const getDaysSinceLastCheckIn = usePlantStore((state) => state.getDaysSinceLastCheckIn)
 	const getPlantCheckIns = usePlantStore((state) => state.getPlantCheckIns)
 	const addCheckIn = usePlantStore((state) => state.addCheckIn)
 	const updatePlant = usePlantStore((state) => state.updatePlant)
@@ -51,7 +51,9 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const rooms = useRoomStore((state) => state.rooms)
 
 	const [isEditOpen, setIsEditOpen] = useState(false)
-	const [activeTab, setActiveTab] = useState<'care' | 'check-in' | 'history' | 'tips'>('care')
+	const [activeTab, setActiveTab] = useState<'care' | 'check-in' | 'history' | 'tips' | 'photos'>('care')
+	const [photoViewerIndex, setPhotoViewerIndex] = useState<number | null>(null)
+	const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false)
 
 	// Check-in form state
 	const [plantCondition, setPlantCondition] = useState<PlantCondition>(plant?.condition || 'healthy')
@@ -66,9 +68,186 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const species = plant.isCustomPlant ? null : getPlantById(plant.speciesId)
 	const room = getRoom(plant.roomId)
 	const history = getPlantHistory(plant.id)
-	const daysSince = getDaysSinceLastCheckIn(plant.id)
+
+	// Collect all photos for the Photos tab and carousel
+	const allPhotos: Array<{ url: string; date: string; label: string }> = []
+
+	// Track unique photo URLs to avoid duplicates
+	const photoUrls = new Set<string>()
+
+	// Add plant main photo
+	if (plant.photoUrl) {
+		allPhotos.push({
+			url: plant.photoUrl,
+			date: plant.dateAdded,
+			label: 'Plant cover'
+		})
+		photoUrls.add(plant.photoUrl)
+	}
+
+	// Add check-in photos
+	const checkIns = getPlantCheckIns(plant.id)
+	checkIns.forEach((checkIn) => {
+		if (checkIn.photoUrl && !photoUrls.has(checkIn.photoUrl)) {
+			allPhotos.push({
+				url: checkIn.photoUrl,
+				date: checkIn.date,
+				label: 'Check-in photo'
+			})
+			photoUrls.add(checkIn.photoUrl)
+		}
+	})
+
+	// Add photos from edit history (preserves old cover photos)
+	history.forEach((entry) => {
+		if (entry.type === 'edit') {
+			entry.data.changes.forEach((change) => {
+				if (change.field === 'photoUrl' && change.oldValue && !photoUrls.has(change.oldValue as string)) {
+					allPhotos.push({
+						url: change.oldValue as string,
+						date: entry.data.date,
+						label: 'Plant photo'
+					})
+					photoUrls.add(change.oldValue as string)
+				}
+			})
+		}
+	})
+
+	// Sort by date (newest first)
+	allPhotos.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+	// Calculate next check date
+	const checkFrequency = plant.isCustomPlant ? (plant.customCheckFrequency || 7) : (species?.watering.checkFrequency || 7)
+	let nextCheckDate: Date | null = null
+	if (checkIns.length > 0) {
+		const baseDate = new Date(checkIns[0].date)
+		nextCheckDate = new Date(baseDate)
+		nextCheckDate.setDate(nextCheckDate.getDate() + checkFrequency)
+	} else {
+		const baseDate = new Date(plant.dateAdded)
+		nextCheckDate = new Date(baseDate)
+		nextCheckDate.setDate(nextCheckDate.getDate() + checkFrequency)
+	}
 
 	// For custom plants, species will be null - that's OK
+
+	// Set photo as cover
+	const handleSetAsCover = () => {
+		if (photoViewerIndex !== null && allPhotos[photoViewerIndex]) {
+			const newCoverPhoto = allPhotos[photoViewerIndex].url
+			updatePlant(plant.id, { photoUrl: newCoverPhoto })
+			toaster.create({
+				title: 'Cover photo updated!',
+				type: 'success',
+				duration: 2000,
+			})
+		}
+	}
+
+	// Delete photo
+	const handleDeletePhoto = () => {
+		if (photoViewerIndex === null || !allPhotos[photoViewerIndex]) return
+
+		const photoToDelete = allPhotos[photoViewerIndex]
+		const confirmed = window.confirm('Delete this photo?')
+
+		if (!confirmed) return
+
+		// If it's the current cover photo, remove it
+		if (photoToDelete.label === 'Plant cover' && plant.photoUrl === photoToDelete.url) {
+			updatePlant(plant.id, { photoUrl: undefined })
+			toaster.create({
+				title: 'Cover photo removed',
+				type: 'success',
+				duration: 2000,
+			})
+		}
+		// If it's a check-in photo, we can't delete it from here
+		else if (photoToDelete.label === 'Check-in photo') {
+			toaster.create({
+				title: 'Cannot delete check-in photo',
+				description: 'Go to History tab to edit or delete the check-in',
+				type: 'info',
+				duration: 4000,
+			})
+			return
+		}
+
+		// Close viewer after deletion
+		setPhotoViewerIndex(null)
+	}
+
+	// Handle photo upload - add to timeline as "uploaded photo"
+	const handleQuickPhotoUpload = (base64Photo: string) => {
+		try {
+			// Add as check-in with current date (uploaded photo)
+			addCheckIn({
+				plantId: plant.id,
+				photoUrl: base64Photo,
+				actionsTaken: [],
+			})
+
+			// Only set as cover if plant has NO cover photo
+			if (!plant.photoUrl) {
+				updatePlant(plant.id, { photoUrl: base64Photo })
+				toaster.create({
+					title: 'Photo uploaded!',
+					description: 'Set as cover photo',
+					type: 'success',
+					duration: 2000,
+				})
+			} else {
+				toaster.create({
+					title: 'Photo uploaded!',
+					type: 'success',
+					duration: 2000,
+				})
+			}
+
+			// Force refresh of photos tab
+			setActiveTab('photos')
+		} catch (error) {
+			console.error('Error uploading photo:', error)
+			toaster.create({
+				title: 'Error uploading photo',
+				description: 'Please try again',
+				type: 'error',
+				duration: 5000,
+			})
+		}
+	}
+
+	// Photo carousel navigation (infinite loop)
+	const handlePreviousPhoto = () => {
+		if (photoViewerIndex !== null) {
+			setPhotoViewerIndex(photoViewerIndex === 0 ? allPhotos.length - 1 : photoViewerIndex - 1)
+		}
+	}
+
+	const handleNextPhoto = () => {
+		if (photoViewerIndex !== null) {
+			setPhotoViewerIndex(photoViewerIndex === allPhotos.length - 1 ? 0 : photoViewerIndex + 1)
+		}
+	}
+
+	// Keyboard navigation for photo carousel
+	useEffect(() => {
+		if (photoViewerIndex === null) return
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'ArrowLeft') {
+				handlePreviousPhoto()
+			} else if (e.key === 'ArrowRight') {
+				handleNextPhoto()
+			} else if (e.key === 'Escape') {
+				setPhotoViewerIndex(null)
+			}
+		}
+
+		window.addEventListener('keydown', handleKeyDown)
+		return () => window.removeEventListener('keydown', handleKeyDown)
+	}, [photoViewerIndex, allPhotos.length])
 
 	const handleDelete = () => {
 		if (window.confirm(`Are you sure you want to delete ${plant.customName}? This cannot be undone.`)) {
@@ -78,6 +257,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	}
 
 	const handleCheckInSubmit = () => {
+		if (isSubmittingCheckIn) return
+
 		// Check if anything was recorded or condition changed
 		const hasObservation = soilMoisture || leafConditions.length > 0 || actions.length > 0 || notes.trim() || photoUrl
 		const conditionChanged = plantCondition !== plant.condition
@@ -92,54 +273,68 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 			return
 		}
 
-		addCheckIn({
-			plantId: plant.id,
-			soilMoisture: soilMoisture || undefined,
-			leafCondition: leafConditions.length > 0 ? leafConditions : undefined,
-			actionsTaken: actions,
-			notes: notes.trim() || undefined,
-			photoUrl,
-		})
+		setIsSubmittingCheckIn(true)
 
-		// Update plant condition if it changed
-		if (conditionChanged) {
-			updatePlant(plant.id, { condition: plantCondition })
-		}
+		try {
+			addCheckIn({
+				plantId: plant.id,
+				soilMoisture: soilMoisture || undefined,
+				leafCondition: leafConditions.length > 0 ? leafConditions : undefined,
+				actionsTaken: actions,
+				notes: notes.trim() || undefined,
+				photoUrl,
+			})
 
-		// If plant has no photo yet, use the check-in photo as plant photo
-		if (!plant.photoUrl && photoUrl) {
-			updatePlant(plant.id, { photoUrl })
-		}
+			// Update plant condition if it changed
+			if (conditionChanged) {
+				updatePlant(plant.id, { condition: plantCondition })
+			}
 
-		// Check if problems were reported and we have solutions
-		const hasProblems = leafConditions.length > 0 ||
-			soilMoisture === 'soggy' || soilMoisture === 'wet' || soilMoisture === 'bone-dry' ||
-			plantCondition === 'struggling' || plantCondition === 'needs-attention'
+			// If plant has no photo yet, use the check-in photo as plant photo
+			if (!plant.photoUrl && photoUrl) {
+				updatePlant(plant.id, { photoUrl })
+			}
 
-		// Reset form
-		setSoilMoisture(null)
-		setLeafConditions([])
-		setActions([])
-		setNotes('')
-		setPhotoUrl(undefined)
-		setPlantCondition(plant.condition)
+			// Check if problems were reported and we have solutions
+			const hasProblems = leafConditions.length > 0 ||
+				soilMoisture === 'soggy' || soilMoisture === 'wet' || soilMoisture === 'bone-dry' ||
+				plantCondition === 'struggling' || plantCondition === 'needs-attention'
 
-		// Switch to appropriate tab and show success message
-		if (hasProblems && !plant.isCustomPlant) {
-			setActiveTab('tips')
+			// Reset form
+			setSoilMoisture(null)
+			setLeafConditions([])
+			setActions([])
+			setNotes('')
+			setPhotoUrl(undefined)
+			setPlantCondition(plant.condition)
+			setIsSubmittingCheckIn(false)
+
+			// Switch to appropriate tab and show success message
+			if (hasProblems && !plant.isCustomPlant) {
+				setActiveTab('tips')
+				toaster.create({
+					title: 'Check-in saved!',
+					description: 'See the Tips tab for suggested solutions.',
+					type: 'success',
+					duration: 5000,
+				})
+			} else {
+				setActiveTab('history')
+				toaster.create({
+					title: 'Check-in saved!',
+					type: 'success',
+					duration: 5000,
+				})
+			}
+		} catch (error) {
+			console.error('Error saving check-in:', error)
 			toaster.create({
-				title: 'Check-in saved!',
-				description: 'See the Tips tab for suggested solutions.',
-				type: 'success',
+				title: 'Storage full',
+				description: 'Try removing some photos to free up space',
+				type: 'error',
 				duration: 5000,
 			})
-		} else {
-			setActiveTab('history')
-			toaster.create({
-				title: 'Check-in saved!',
-				type: 'success',
-				duration: 5000,
-			})
+			setIsSubmittingCheckIn(false)
 		}
 	}
 
@@ -320,7 +515,18 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 						  <HStack align="start" gap={4}>
 							{/* Plant Photo */}
 							{plant.photoUrl && (
-							  <Box flexShrink={0}>
+							  <Box
+								flexShrink={0}
+								cursor="pointer"
+								onClick={() => {
+									const photoIndex = allPhotos.findIndex(p => p.url === plant.photoUrl)
+									if (photoIndex !== -1) {
+										setPhotoViewerIndex(photoIndex)
+									}
+								}}
+								_hover={{ opacity: 0.9, transform: 'scale(1.02)' }}
+								transition="all 0.2s"
+							  >
 								<ChakraImage
 								  src={plant.photoUrl}
 								  alt={plant.customName}
@@ -355,10 +561,17 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												{species?.scientificName}
 											</Text>
 											<HStack flexWrap="wrap" gap={2}>
-												<Badge colorScheme="green" fontSize="xs">
+												<Badge
+													colorScheme={
+														species?.careLevel === 'beginner' ? 'green' :
+														species?.careLevel === 'intermediate' ? 'yellow' :
+														'purple'
+													}
+													fontSize="xs"
+												>
 													{species?.careLevel === 'beginner' ? '🌱 Easy care' :
 													 species?.careLevel === 'intermediate' ? '🌿 Moderate care' :
-													 '🔥 Needs attention'}
+													 '🎓 Advanced'}
 												</Badge>
 												{species?.petSafe && (
 													<Badge colorScheme="blue" fontSize="xs">
@@ -380,14 +593,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 												<Text fontWeight="medium" textTransform="capitalize">{plant.size}</Text>
 											</HStack>
 											<HStack justify="space-between">
-												<Text color="gray.600">Last check-in:</Text>
+												<Text color="gray.600">Next check:</Text>
 												<Text fontWeight="medium">
-													{daysSince === 0 ? 'Today' : `${daysSince} day${daysSince !== 1 ? 's' : ''} ago`}
+													{nextCheckDate ? nextCheckDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Not set'} (every {checkFrequency} days)
 												</Text>
-											</HStack>
-											<HStack justify="space-between">
-												<Text color="gray.600">Total history:</Text>
-												<Text fontWeight="medium">{history.length} event{history.length !== 1 ? 's' : ''}</Text>
 											</HStack>
 								  </VStack>
 								</Box>
@@ -440,6 +649,15 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 											<Badge colorScheme="red" fontSize="2xs" px={1}>!</Badge>
 										)}
 									</HStack>
+								</Button>
+								<Button
+									size={{ base: 'xs', md: 'sm' }}
+									variant={activeTab === 'photos' ? 'solid' : 'ghost'}
+									colorScheme={activeTab === 'photos' ? 'green' : 'gray'}
+									onClick={() => setActiveTab('photos')}
+									flexShrink={0}
+								>
+									📷 Photos {allPhotos.length > 0 && `(${allPhotos.length})`}
 								</Button>
 							</HStack>
 
@@ -931,7 +1149,18 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 															<HStack align="start" gap={3}>
 																{/* Check-in Photo */}
 																{checkIn.photoUrl && (
-																	<Box flexShrink={0}>
+																	<Box
+																		flexShrink={0}
+																		cursor="pointer"
+																		onClick={() => {
+																			const photoIndex = allPhotos.findIndex(p => p.url === checkIn.photoUrl)
+																			if (photoIndex !== -1) {
+																				setPhotoViewerIndex(photoIndex)
+																			}
+																		}}
+																		_hover={{ opacity: 0.8, transform: 'scale(1.05)' }}
+																		transition="all 0.2s"
+																	>
 																		<ChakraImage
 																			src={checkIn.photoUrl}
 																			alt="Check-in photo"
@@ -1179,6 +1408,81 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 									)}
 								</VStack>
 							)}
+
+							{/* Photos Tab */}
+							{activeTab === 'photos' && (
+								<VStack align="stretch" gap={4}>
+									{/* Add Photo Button */}
+									<HStack gap={2}>
+										<PhotoUpload
+											onPhotoChange={(photo) => {
+												if (photo) handleQuickPhotoUpload(photo)
+											}}
+											label=""
+										/>
+										<Tooltip content="Upload a photo for your plant. Check-in photos are added separately from the Check-in tab." positioning={{ placement: 'right' }}>
+											<Box
+												as="span"
+												fontSize="sm"
+												color="gray.400"
+												cursor="help"
+												display="inline-flex"
+												alignItems="center"
+											>
+												ⓘ
+											</Box>
+										</Tooltip>
+									</HStack>
+
+									{allPhotos.length === 0 ? (
+										<Box textAlign="center" py={12}>
+											<Text color="gray.600">No photos yet</Text>
+										</Box>
+									) : (
+										<SimpleGrid columns={{ base: 2, sm: 3 }} gap={3}>
+											{allPhotos.map((photo, index) => (
+												<Box
+													key={index}
+													position="relative"
+													cursor="pointer"
+													onClick={() => setPhotoViewerIndex(index)}
+													borderRadius="md"
+													overflow="hidden"
+													_hover={{ transform: 'scale(1.05)', transition: 'transform 0.2s' }}
+												>
+													<ChakraImage
+														src={photo.url}
+														alt={photo.label}
+														width="100%"
+														height="150px"
+														objectFit="cover"
+													/>
+													<Box
+														position="absolute"
+														bottom={0}
+														left={0}
+														right={0}
+														bg="blackAlpha.700"
+														color="white"
+														p={2}
+													>
+														<Text fontSize="xs" fontWeight="medium">
+															{photo.label}
+														</Text>
+														<Text fontSize="2xs">
+															{new Date(photo.date).toLocaleDateString('en-US', {
+																month: 'short',
+																day: 'numeric',
+																year: 'numeric'
+															})}
+														</Text>
+													</Box>
+												</Box>
+											))}
+										</SimpleGrid>
+									)}
+								</VStack>
+							)}
 						</VStack>
 					</DialogBody>
 
@@ -1219,6 +1523,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 				</DialogContent>
 			</DialogRoot>
 
+
+
 			{/* Edit Modal */}
 			{isEditOpen && (
 				<EditPlantModal
@@ -1226,6 +1532,177 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 					isOpen={isEditOpen}
 					onClose={() => setIsEditOpen(false)}
 				/>
+			)}
+
+			{/* Photo Carousel Viewer */}
+			{photoViewerIndex !== null && allPhotos[photoViewerIndex] && (
+				<DialogRoot
+					open={photoViewerIndex !== null}
+					onOpenChange={(e) => !e.open && setPhotoViewerIndex(null)}
+					size="full"
+				>
+					<DialogBackdrop bg="blackAlpha.950" />
+					<DialogContent
+						maxW="100vw"
+						maxH="100vh"
+						width="100vw"
+						height="100vh"
+						position="fixed"
+						top="0"
+						left="0"
+						right="0"
+						bottom="0"
+						bg="black"
+						borderRadius={0}
+						boxShadow="none"
+						p={0}
+						m={0}
+					>
+						<Box
+							position="relative"
+							width="full"
+							height="full"
+							display="flex"
+							alignItems="center"
+							justifyContent="center"
+						>
+							{/* Large Photo - Takes maximum space */}
+							<ChakraImage
+								src={allPhotos[photoViewerIndex].url}
+								alt={allPhotos[photoViewerIndex].label}
+								maxW="100vw"
+								maxH="100vh"
+								objectFit="contain"
+							/>
+
+							{/* Top Overlay - Counter, Set Cover, & Close */}
+							<HStack
+								position="absolute"
+								top={0}
+								left={0}
+								right={0}
+								p={4}
+								justify="space-between"
+								bg="linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)"
+								color="white"
+							>
+								<Text fontSize="sm" fontWeight="medium">
+									{photoViewerIndex + 1} / {allPhotos.length}
+								</Text>
+								<HStack gap={2}>
+									{allPhotos[photoViewerIndex].url === plant.photoUrl ? (
+										<Button
+											size="sm"
+											colorScheme="green"
+											variant="solid"
+											bg="green.500"
+											color="white"
+											fontSize="xs"
+											disabled
+											cursor="default"
+										>
+											✓ Current Cover
+										</Button>
+									) : (
+										<Button
+											size="sm"
+											onClick={handleSetAsCover}
+											colorScheme="whiteAlpha"
+											variant="solid"
+											bg="whiteAlpha.200"
+											color="white"
+											_hover={{ bg: 'whiteAlpha.300' }}
+											fontSize="xs"
+										>
+											⭐ Set as Cover
+										</Button>
+									)}
+									<Button
+										size="sm"
+										onClick={() => setPhotoViewerIndex(null)}
+										colorScheme="whiteAlpha"
+										variant="ghost"
+										color="white"
+										_hover={{ bg: 'whiteAlpha.300' }}
+									>
+										✕ Close
+									</Button>
+								</HStack>
+							</HStack>
+
+							{/* Bottom Overlay - Photo Info & Delete */}
+							<HStack
+								position="absolute"
+								bottom={0}
+								left={0}
+								right={0}
+								p={4}
+								justify="space-between"
+								bg="linear-gradient(to top, rgba(0,0,0,0.7), transparent)"
+								color="white"
+							>
+								<Box>
+									<Text fontSize="sm" fontWeight="medium">
+										{allPhotos[photoViewerIndex].label}
+									</Text>
+									<Text fontSize="xs" opacity={0.8}>
+										{new Date(allPhotos[photoViewerIndex].date).toLocaleDateString('en-US', {
+											month: 'short',
+											day: 'numeric',
+											year: 'numeric'
+										})}
+									</Text>
+								</Box>
+								<Button
+									size="sm"
+									onClick={handleDeletePhoto}
+									colorScheme="red"
+									variant="solid"
+									bg="red.500"
+									color="white"
+									_hover={{ bg: 'red.600' }}
+									fontSize="xs"
+								>
+									🗑️ Delete
+								</Button>
+							</HStack>
+
+							{/* Navigation Buttons - Always visible */}
+							<Button
+								position="absolute"
+								left={{ base: 2, md: 4 }}
+								top="50%"
+								transform="translateY(-50%)"
+								onClick={handlePreviousPhoto}
+								size={{ base: 'md', md: 'lg' }}
+								borderRadius="full"
+								colorScheme="whiteAlpha"
+								bg="whiteAlpha.300"
+								color="white"
+								_hover={{ bg: 'whiteAlpha.400' }}
+								fontSize="xl"
+							>
+								←
+							</Button>
+							<Button
+								position="absolute"
+								right={{ base: 2, md: 4 }}
+								top="50%"
+								transform="translateY(-50%)"
+								onClick={handleNextPhoto}
+								size={{ base: 'md', md: 'lg' }}
+								borderRadius="full"
+								colorScheme="whiteAlpha"
+								bg="whiteAlpha.300"
+								color="white"
+								_hover={{ bg: 'whiteAlpha.400' }}
+								fontSize="xl"
+							>
+								→
+							</Button>
+						</Box>
+					</DialogContent>
+				</DialogRoot>
 			)}
 		</>
 	)
