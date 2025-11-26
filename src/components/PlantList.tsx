@@ -315,16 +315,97 @@ export function PlantList({ viewMode }: PlantListProps) {
 
 	if (plants.length === 0) {
 		return (
-			<Box textAlign="center" py={12}>
-				<Text fontSize="4xl" mb={2}>
-					🪴
-				</Text>
-				<Text fontSize="lg" color="gray.600" mb={1}>
-					No plants yet
-				</Text>
-				<Text fontSize="sm" color="gray.500">
-					Add your first plant to get started!
-				</Text>
+			<Box maxW="800px" mx="auto">
+				<VStack gap={6} align="stretch">
+					{/* Welcome Header */}
+					<Box textAlign="center" py={8}>
+						<Text fontSize="5xl" mb={4}>
+							🌱
+						</Text>
+						<Heading size="xl" color="green.600" mb={2}>
+							Welcome to PlantNurse!
+						</Heading>
+						<Text fontSize="md" color="gray.600">
+							Your plant care companion. Let's get started!
+						</Text>
+					</Box>
+
+					{/* Quick Tutorial */}
+					<Card.Root variant="outline" bg="green.50" borderColor="green.200">
+						<Card.Body>
+							<VStack gap={4} align="stretch">
+								<HStack align="start" gap={3}>
+									<Text fontSize="xl" fontWeight="bold">1️⃣</Text>
+									<Box>
+										<Text fontSize="md" fontWeight="bold" mb={1}>Add Your Plants</Text>
+										<Text fontSize="sm" color="gray.700">
+											Click <strong>"+ Add Plant"</strong> above to add plants from our database or create custom ones. Give them names and assign them to rooms.
+										</Text>
+									</Box>
+								</HStack>
+
+								<HStack align="start" gap={3}>
+									<Text fontSize="xl" fontWeight="bold">2️⃣</Text>
+									<Box>
+										<Text fontSize="md" fontWeight="bold" mb={1}>Check In Regularly</Text>
+										<Text fontSize="sm" color="gray.700">
+											The Check-in tab turns <Badge colorScheme="orange" fontSize="xs">orange</Badge> when it's time to check your plant. Log soil moisture, leaf condition, and actions taken.
+										</Text>
+									</Box>
+								</HStack>
+
+								<HStack align="start" gap={3}>
+									<Text fontSize="xl" fontWeight="bold">3️⃣</Text>
+									<Box>
+										<Text fontSize="md" fontWeight="bold" mb={1}>Get Smart Suggestions</Text>
+										<Text fontSize="sm" color="gray.700">
+											If you report issues (yellowing leaves, drooping, etc.), the app suggests solutions in the Tips tab automatically.
+										</Text>
+									</Box>
+								</HStack>
+
+								<HStack align="start" gap={3}>
+									<Text fontSize="xl" fontWeight="bold">4️⃣</Text>
+									<Box>
+										<Text fontSize="md" fontWeight="bold" mb={1}>Track Growth with Photos</Text>
+										<Text fontSize="sm" color="gray.700">
+											Upload photos during check-ins or from the Photos tab to create a visual timeline of your plant's journey.
+										</Text>
+									</Box>
+								</HStack>
+
+								<HStack align="start" gap={3}>
+									<Text fontSize="xl" fontWeight="bold">5️⃣</Text>
+									<Box>
+										<Text fontSize="md" fontWeight="bold" mb={1}>Organize Your Way</Text>
+										<Text fontSize="sm" color="gray.700">
+											Use the view dropdown to sort by room, health, next check date, or care level. Drag and drop to reorder plants.
+										</Text>
+									</Box>
+								</HStack>
+							</VStack>
+						</Card.Body>
+					</Card.Root>
+
+					{/* Tips */}
+					<HStack gap={3}>
+						<Card.Root flex={1} variant="outline" bg="blue.50" borderColor="blue.200">
+							<Card.Body>
+								<Text fontSize="xs" color="blue.800">
+									💡 <strong>Tip:</strong> Click any plant name to see detailed care guides, full history, and troubleshooting tips!
+								</Text>
+							</Card.Body>
+						</Card.Root>
+
+						<Card.Root flex={1} variant="outline" bg="orange.50" borderColor="orange.200">
+							<Card.Body>
+								<Text fontSize="xs" color="orange.800">
+									⚠️ <strong>Important:</strong> All data is stored locally in your browser. Clearing browser data will delete everything.
+								</Text>
+							</Card.Body>
+						</Card.Root>
+					</HStack>
+				</VStack>
 			</Box>
 		)
 	}
