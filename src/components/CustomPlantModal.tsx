@@ -208,7 +208,7 @@ export function CustomPlantModal({ isOpen, onClose }: CustomPlantModalProps) {
 										flex={1}
 										minW="80px"
 									>
-										{light.label}
+										{getLightLevelIcon(light.value)} {light.label}
 									</Button>
 								))}
 							</HStack>

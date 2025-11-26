@@ -1,36 +1,75 @@
 # 🌱 PlantNurse
 
-**A smart plant care companion that teaches you how to care for your plants.**
+**A smart plant care companion that helps you track and care for your houseplants.**
 
-PlantNurse helps inexperienced plant owners learn proper plant care through observation and guidance, not just scheduled reminders. The app focuses on teaching you to "read" your plants and understand their needs.
+PlantNurse is a simple, intuitive app for plant owners to track their plants, log check-ins, manage care schedules, and learn from their plant care journey. All data is stored locally in your browser - no account or internet connection required.
 
 ## ✨ Features
 
-- 🪴 **Plant Database**: 15 common houseplants with detailed care information
-- 🔍 **Plant Identification**: Don't know your plant? We'll help you identify it
-- ✅ **Smart Check-ins**: Learn what to observe and when to check your plants
-- 📚 **Educational Guidance**: Understand WHY plants need certain care
-- 🎯 **Personalized Care**: Tailored to your specific plants and environment
-- 📱 **Client-Side Only**: All data stored locally, no server required
+### Plant Management
+- 🪴 **Plant Database**: 15 common houseplants with detailed care guides (watering, light, temperature, humidity)
+- 🌱 **Custom Plants**: Can't find your plant? Add custom plants with your own care instructions
+- 📸 **Photo Timeline**: Track your plant's growth with photos (uploaded or from check-ins)
+- 🏠 **Room Organization**: Organize plants by room with light level and temperature info
+
+### Check-ins & Tracking
+- ✅ **Smart Check-ins**: Log soil moisture, leaf condition, actions taken, and notes
+- 📅 **Care Schedule**: Customizable check-in frequency for each plant
+- 🩺 **Issue Detection**: Automatic suggestions for common problems (overwatering, underwatering, pests)
+- 📊 **Plant History**: Full timeline of check-ins, edits, and changes
+
+### Views & Organization
+- 📋 **Multiple Views**: Sort by all plants, room, health status, next check date, or care level
+- 🔄 **Drag & Drop**: Reorder your plants in default view
+- 🎨 **Status Indicators**: Clear visual indicators for plant health and check-in needs
+
+### Settings & Customization
+- 🌡️ **Unit Preferences**: Switch between Fahrenheit/Celsius and inches/cm
+- ⚙️ **Room Management**: Create and manage custom rooms with light and temperature info
+- 📱 **Responsive Design**: Works seamlessly on mobile and desktop
+
+### Privacy & Storage
+- 🔒 **100% Local**: All data stored in browser LocalStorage - no server, no account needed
+- 💾 **Automatic Sync**: Changes save instantly to local storage
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- **Node.js 18+** - [Download here](https://nodejs.org/)
+- **npm** (comes with Node.js)
 
-### Installation
+### Installation & Setup
+
+1. **Clone or download this repository:**
+	 ```bash
+	 git clone <repository-url>
+	 cd plant-nurse-app
+	 ```
+
+2. **Install dependencies:**
+	 ```bash
+	 npm install
+	 ```
+
+3. **Start the development server:**
+	 ```bash
+	 npm run dev
+	 ```
+
+4. **Open in browser:**
+	 - The app will be available at `http://localhost:5173/`
+	 - Your browser should open automatically
+
+### Building for Production
+
+To create a production build:
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+npm run build
 ```
 
-The app will be available at `http://localhost:5173/`
+The optimized files will be in the `dist/` folder, ready to deploy to any static hosting service (Netlify, Vercel, GitHub Pages, etc.).
 
 ## 🛠️ Available Scripts
 
@@ -68,37 +107,72 @@ plant-nurse-app/
 
 ## 🌿 How It Works
 
-1. **Add Your Plants**: Input plant type and give it a friendly name
-2. **Learn to Observe**: Get guidance on what to check (soil moisture, leaf condition)
-3. **Check-In Regularly**: Record observations and actions taken
-4. **Build Knowledge**: Learn patterns and understand your plants' needs
-5. **Grow Together**: Watch your plants thrive as you become a better plant parent
+1. **Add Your Plants**
+	 - Choose from 15 common houseplants or add a custom plant
+	 - Give it a name, assign to a room, note its size and condition
+	 - Optionally add a photo
 
-## 🎯 Development Philosophy
+2. **Check In Regularly**
+	 - App reminds you when to check each plant based on its care schedule
+	 - Log soil moisture, leaf condition, actions taken (watered, fertilized, etc.)
+	 - Add notes and photos to track progress
 
-This isn't just a reminder app. PlantNurse focuses on:
-- Teaching observation skills over rigid schedules
-- Building understanding of plant needs
-- Adapting to real-world conditions (seasons, environment)
-- Empowering users to make informed decisions
+3. **Get Smart Suggestions**
+	 - App analyzes your check-ins and detects potential issues
+	 - Provides specific solutions for common problems (yellowing leaves, brown tips, drooping, etc.)
+	 - Learn what your plants need based on their symptoms
 
-## 📝 Type Checking
+4. **Track Growth & History**
+	 - View complete timeline of all check-ins and changes
+	 - Photo gallery shows your plant's journey over time
+	 - See patterns in your care routine and plant health
 
-Always run type checking before committing:
+5. **Organize Your Collection**
+	 - Sort and filter plants by room, health, care level, or next check date
+	 - Manage multiple rooms with different light and temperature conditions
+	 - Customize units (°F/°C, inches/cm) to your preference
 
+## 📝 Development
+
+### Type Checking
+
+Run TypeScript type checking:
 ```bash
 npm run check
 ```
 
-This ensures type safety across the codebase.
+### Linting
+
+Check code quality with ESLint:
+```bash
+npm run lint
+```
+
+### Preview Production Build
+
+Test the production build locally:
+```bash
+npm run build
+npm run preview
+```
+
+## 💾 Data Storage
+
+- All data is stored in your browser's LocalStorage
+- No data is sent to any server - everything stays on your device
+- To backup your data: Export your browser's LocalStorage (use browser DevTools)
+- Clearing browser data will delete all your plants and check-ins
 
 ## 🤝 Contributing
 
-Currently a personal project. Feel free to fork and adapt for your needs.
+This is a personal project, but contributions are welcome! Feel free to:
+- Fork the repository
+- Submit issues for bugs or feature requests
+- Create pull requests with improvements
 
 ## 📄 License
 
-Private project - all rights reserved.
+MIT License - feel free to use and modify for your own needs.
 
 ---
 

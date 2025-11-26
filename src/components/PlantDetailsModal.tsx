@@ -27,7 +27,6 @@ import { useSettingsStore } from '../store/settingsStore'
 import { getPlantById } from '../data/plantDatabase'
 import { EditPlantModal } from './EditPlantModal'
 import { PhotoUpload } from './PhotoUpload'
-import { Tooltip } from './Tooltip'
 import { formatTemperatureRange, formatDistance, formatIdealTemperature } from '../utils/unitConversion'
 import type { SoilMoisture, LeafCondition, CheckInAction, PlantCondition } from '../types'
 import { toaster } from '../main'
@@ -55,6 +54,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const [photoViewerIndex, setPhotoViewerIndex] = useState<number | null>(null)
 	const [currentViewingPhotoUrl, setCurrentViewingPhotoUrl] = useState<string | null>(null)
 	const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false)
+	const [refreshKey, setRefreshKey] = useState(0) // Forces re-render to fetch fresh data
 
 	// Check-in form state
 	const [plantCondition, setPlantCondition] = useState<PlantCondition>(plant?.condition || 'healthy')
@@ -69,11 +69,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	const species = plant.isCustomPlant ? null : getPlantById(plant.speciesId)
 	const room = getRoom(plant.roomId)
 	const history = getPlantHistory(plant.id)
+	const checkIns = getPlantCheckIns(plant.id)
 
 	// Collect all photos for the Photos tab and carousel
 	const allPhotos: Array<{ url: string; date: string; label: string }> = []
-
-	// Track unique photo URLs to avoid duplicates
 	const photoUrls = new Set<string>()
 
 	// Add plant main photo
@@ -87,13 +86,28 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	}
 
 	// Add check-in photos
-	const checkIns = getPlantCheckIns(plant.id)
 	checkIns.forEach((checkIn) => {
 		if (checkIn.photoUrl && !photoUrls.has(checkIn.photoUrl)) {
+			// Check if this is the current plant cover
+			const isCover = checkIn.photoUrl === plant.photoUrl
+
+			// If check-in only has a photo (no other data), it's from Photos tab upload
+			const isPhotoUpload = !checkIn.soilMoisture &&
+				(!checkIn.leafCondition || checkIn.leafCondition.length === 0) &&
+				checkIn.actionsTaken.length === 0 &&
+				!checkIn.notes
+
+			let label = 'Check-in photo'
+			if (isCover) {
+				label = 'Plant cover'
+			} else if (isPhotoUpload) {
+				label = 'Uploaded photo'
+			}
+
 			allPhotos.push({
 				url: checkIn.photoUrl,
 				date: checkIn.date,
-				label: 'Check-in photo'
+				label: label
 			})
 			photoUrls.add(checkIn.photoUrl)
 		}
@@ -131,6 +145,9 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 		nextCheckDate.setDate(nextCheckDate.getDate() + checkFrequency)
 	}
 
+	// Check if check-in is due (today or past due)
+	const isCheckInDue = nextCheckDate ? nextCheckDate <= new Date() : false
+
 	// For custom plants, species will be null - that's OK
 
 	// Keep photo viewer on same photo when allPhotos array changes (e.g., after setting cover)
@@ -140,19 +157,12 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 			// If the photo at current index doesn't match what we're viewing, find the correct index
 			if (currentPhotoInViewer?.url !== currentViewingPhotoUrl) {
 				const correctIndex = allPhotos.findIndex(p => p.url === currentViewingPhotoUrl)
-				if (correctIndex !== -1) {
+				if (correctIndex !== -1 && correctIndex !== photoViewerIndex) {
 					setPhotoViewerIndex(correctIndex)
 				}
 			}
 		}
-	}, [allPhotos, photoViewerIndex, currentViewingPhotoUrl])
-
-	// Track which photo we're viewing
-	useEffect(() => {
-		if (photoViewerIndex !== null && allPhotos[photoViewerIndex]) {
-			setCurrentViewingPhotoUrl(allPhotos[photoViewerIndex].url)
-		}
-	}, [photoViewerIndex, allPhotos.length])
+	}, [allPhotos])
 
 	// Set photo as cover
 	const handleSetAsCover = () => {
@@ -240,8 +250,8 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 				})
 			}
 
-			// Force refresh of photos tab
-			setActiveTab('photos')
+			// Force re-render to show new photo immediately
+			setRefreshKey(prev => prev + 1)
 		} catch (error) {
 			console.error('Error uploading photo:', error)
 			toaster.create({
@@ -256,13 +266,17 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 	// Photo carousel navigation (infinite loop)
 	const handlePreviousPhoto = () => {
 		if (photoViewerIndex !== null) {
-			setPhotoViewerIndex(photoViewerIndex === 0 ? allPhotos.length - 1 : photoViewerIndex - 1)
+			const newIndex = photoViewerIndex === 0 ? allPhotos.length - 1 : photoViewerIndex - 1
+			setPhotoViewerIndex(newIndex)
+			setCurrentViewingPhotoUrl(allPhotos[newIndex].url)
 		}
 	}
 
 	const handleNextPhoto = () => {
 		if (photoViewerIndex !== null) {
-			setPhotoViewerIndex(photoViewerIndex === allPhotos.length - 1 ? 0 : photoViewerIndex + 1)
+			const newIndex = photoViewerIndex === allPhotos.length - 1 ? 0 : photoViewerIndex + 1
+			setPhotoViewerIndex(newIndex)
+			setCurrentViewingPhotoUrl(allPhotos[newIndex].url)
 		}
 	}
 
@@ -361,6 +375,9 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 					duration: 5000,
 				})
 			}
+
+			// Force re-render to show new check-in and photo immediately
+			setRefreshKey(prev => prev + 1)
 		} catch (error) {
 			console.error('Error saving check-in:', error)
 			toaster.create({
@@ -554,8 +571,9 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								cursor="pointer"
 								onClick={() => {
 									const photoIndex = allPhotos.findIndex(p => p.url === plant.photoUrl)
-									if (photoIndex !== -1) {
+									if (photoIndex !== -1 && plant.photoUrl) {
 										setPhotoViewerIndex(photoIndex)
+										setCurrentViewingPhotoUrl(plant.photoUrl)
 									}
 								}}
 								_hover={{ opacity: 0.9, transform: 'scale(1.02)' }}
@@ -651,13 +669,14 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 									<Text display={{ base: 'block', md: 'none' }}>Care</Text>
 								</Button>
 								<Button
-									size={{ base: 'xs', md: 'sm' }}
-									variant={activeTab === 'check-in' ? 'solid' : 'ghost'}
-									colorScheme={activeTab === 'check-in' ? 'green' : 'gray'}
+									size={{ base: 'sm', md: 'md' }}
+									variant={activeTab === 'check-in' ? 'solid' : (isCheckInDue ? 'solid' : 'ghost')}
+									colorScheme={activeTab === 'check-in' ? 'green' : (isCheckInDue ? 'orange' : 'gray')}
 									onClick={() => setActiveTab('check-in')}
 									flexShrink={0}
+									fontWeight="bold"
 								>
-									✓ <Text display={{ base: 'none', sm: 'inline' }}>Check-in</Text>
+									✓ Check-in
 								</Button>
 								<Button
 									size={{ base: 'xs', md: 'sm' }}
@@ -668,7 +687,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 								>
 									<Text display={{ base: 'none', sm: 'inline' }}>History</Text>
 									<Text display={{ base: 'inline', sm: 'none' }}>📜</Text>
-									{history.length > 0 && <>({history.length})</>}
+									{history.length > 0 && <> ({history.length})</>}
 								</Button>
 								<Button
 									size={{ base: 'xs', md: 'sm' }}
@@ -691,7 +710,7 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 									onClick={() => setActiveTab('photos')}
 									flexShrink={0}
 								>
-									📷 Photos {allPhotos.length > 0 && `(${allPhotos.length})`}
+									📷 {allPhotos.length > 0 && `(${allPhotos.length})`}
 								</Button>
 							</HStack>
 
@@ -1188,8 +1207,9 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 																		cursor="pointer"
 																		onClick={() => {
 																			const photoIndex = allPhotos.findIndex(p => p.url === checkIn.photoUrl)
-																			if (photoIndex !== -1) {
+																			if (photoIndex !== -1 && checkIn.photoUrl) {
 																				setPhotoViewerIndex(photoIndex)
+																				setCurrentViewingPhotoUrl(checkIn.photoUrl)
 																			}
 																		}}
 																		_hover={{ opacity: 0.8, transform: 'scale(1.05)' }}
@@ -1445,28 +1465,14 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 
 							{/* Photos Tab */}
 							{activeTab === 'photos' && (
-								<VStack align="stretch" gap={4}>
+								<VStack key={refreshKey} align="stretch" gap={4}>
 									{/* Add Photo Button */}
-									<HStack gap={2}>
-										<PhotoUpload
-											onPhotoChange={(photo) => {
-												if (photo) handleQuickPhotoUpload(photo)
-											}}
-											label=""
-										/>
-										<Tooltip content="Upload a photo for your plant. Check-in photos are added separately from the Check-in tab." positioning={{ placement: 'right' }}>
-											<Box
-												as="span"
-												fontSize="sm"
-												color="gray.400"
-												cursor="help"
-												display="inline-flex"
-												alignItems="center"
-											>
-												ⓘ
-											</Box>
-										</Tooltip>
-									</HStack>
+									<PhotoUpload
+										onPhotoChange={(photo) => {
+											if (photo) handleQuickPhotoUpload(photo)
+										}}
+										label=""
+									/>
 
 									{allPhotos.length === 0 ? (
 										<Box textAlign="center" py={12}>
@@ -1479,7 +1485,10 @@ export function PlantDetailsModal({ plantId, isOpen, onClose }: PlantDetailsModa
 													key={index}
 													position="relative"
 													cursor="pointer"
-													onClick={() => setPhotoViewerIndex(index)}
+													onClick={() => {
+														setPhotoViewerIndex(index)
+														setCurrentViewingPhotoUrl(photo.url)
+													}}
 													borderRadius="md"
 													overflow="hidden"
 													_hover={{ transform: 'scale(1.05)', transition: 'transform 0.2s' }}

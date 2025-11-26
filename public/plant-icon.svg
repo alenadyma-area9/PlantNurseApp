@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+	<!-- Green plant leaves -->
+	<g fill="#22c55e">
+		<!-- Left leaf -->
+		<path d="M 30 50 Q 15 35, 25 20 Q 30 25, 30 35 Z" />
+		<!-- Center leaf -->
+		<path d="M 50 25 Q 40 15, 50 5 Q 60 15, 50 25 Z" />
+		<!-- Right leaf -->
+		<path d="M 70 50 Q 85 35, 75 20 Q 70 25, 70 35 Z" />
+	</g>
+	<!-- Stem -->
+	<rect x="48" y="25" width="4" height="45" fill="#16a34a" rx="2" />
+	<!-- Pot -->
+	<path d="M 35 70 L 30 90 L 70 90 L 65 70 Z" fill="#ea580c" />
+	<ellipse cx="50" cy="70" rx="15" ry="5" fill="#dc2626" />
+</svg>
