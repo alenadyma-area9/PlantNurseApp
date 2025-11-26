@@ -316,12 +316,9 @@ export function PlantList({ viewMode }: PlantListProps) {
 	if (plants.length === 0) {
 		return (
 			<Box maxW="800px" mx="auto">
-				<VStack gap={6} align="stretch">
+				<VStack gap={4} align="stretch">
 					{/* Welcome Header */}
-					<Box textAlign="center" py={8}>
-						<Text fontSize="5xl" mb={4}>
-							🌱
-						</Text>
+					<Box textAlign="center" py={4}>
 						<Heading size="xl" color="green.600" mb={2}>
 							Welcome to PlantNurse!
 						</Heading>
