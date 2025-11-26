@@ -26,7 +26,7 @@ import {
 import { usePlantStore } from '../store/plantStore'
 import { useRoomStore } from '../store/roomStore'
 import { useSettingsStore } from '../store/settingsStore'
-import type { PlantSize, PlantCondition } from '../types'
+import type { PlantSize, PlantCondition, LightLevel } from '../types'
 import { PhotoUpload } from './PhotoUpload'
 import { RoomManagementModal } from './RoomManagementModal'
 import { getLightLevelIcon } from '../utils/lightLevelUtils'
@@ -53,6 +53,15 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 	const [photoUrl, setPhotoUrl] = useState<string | undefined>()
 	const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
 
+	// Custom plant specific fields
+	const [scientificName, setScientificName] = useState('')
+	const [checkFrequency, setCheckFrequency] = useState(7)
+	const [lightLevel, setLightLevel] = useState<LightLevel>('medium')
+	const [leafShape, setLeafShape] = useState('')
+	const [leafSize, setLeafSize] = useState('')
+	const [growthPattern, setGrowthPattern] = useState('')
+	const [specialFeatures, setSpecialFeatures] = useState('')
+
 	useEffect(() => {
 		if (plant) {
 			setCustomName(plant.customName)
@@ -62,6 +71,17 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 			setCareNotes(plant.customCareNotes || '')
 			setNotes(plant.notes || '')
 			setPhotoUrl(plant.photoUrl)
+
+			// Custom plant specific fields
+			if (plant.isCustomPlant) {
+				setScientificName(plant.customScientificName || '')
+				setCheckFrequency(plant.customCheckFrequency || 7)
+				setLightLevel(plant.customLightLevel || 'medium')
+				setLeafShape(plant.customLeafShape || '')
+				setLeafSize(plant.customLeafSize || '')
+				setGrowthPattern(plant.customGrowthPattern || '')
+				setSpecialFeatures(plant.customSpecialFeatures?.join(', ') || '')
+			}
 		}
 	}, [plant])
 
@@ -116,9 +136,22 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 			notes: notes.trim() || undefined,
 		}
 
-		// For custom plants, also save care notes
+		// For custom plants, also save all custom fields
 		if (plant.isCustomPlant) {
 			updates.customCareNotes = careNotes.trim() || undefined
+			updates.customScientificName = scientificName.trim() || undefined
+			updates.customCheckFrequency = checkFrequency
+			updates.customLightLevel = lightLevel
+			updates.customLeafShape = leafShape.trim() || undefined
+			updates.customLeafSize = leafSize.trim() || undefined
+			updates.customGrowthPattern = growthPattern.trim() || undefined
+
+			// Parse special features from comma-separated string
+			const featuresArray = specialFeatures
+				.split(',')
+				.map(f => f.trim())
+				.filter(f => f.length > 0)
+			updates.customSpecialFeatures = featuresArray.length > 0 ? featuresArray : undefined
 		}
 
 		updatePlant(plant.id, updates)
@@ -249,6 +282,201 @@ export function EditPlantModal({ plantId, isOpen, onClose }: EditPlantModalProps
 									))}
 								</VStack>
 							</Box>
+
+							{/* Custom plant specific fields */}
+							{plant.isCustomPlant && (
+								<>
+									<Box>
+										<Text fontSize="sm" fontWeight="bold" mb={2}>
+											Scientific name (optional):
+										</Text>
+										<Input
+											placeholder="e.g., Ceropegia woodii"
+											value={scientificName}
+											onChange={(e) => setScientificName(e.target.value)}
+										/>
+									</Box>
+
+									<Box>
+										<Text fontSize="sm" fontWeight="bold" mb={2}>
+											Check-in frequency:
+										</Text>
+										<NativeSelectRoot>
+											<NativeSelectField
+												value={checkFrequency}
+												onChange={(e) => setCheckFrequency(Number(e.target.value))}
+											>
+												<option value={3}>Every 3 days</option>
+												<option value={5}>Every 5 days</option>
+												<option value={7}>Every week</option>
+												<option value={10}>Every 10 days</option>
+												<option value={14}>Every 2 weeks</option>
+												<option value={21}>Every 3 weeks</option>
+												<option value={30}>Every month</option>
+											</NativeSelectField>
+										</NativeSelectRoot>
+										<Text fontSize="xs" color="gray.500" mt={1}>
+											How often should you check on it?
+										</Text>
+									</Box>
+
+									<Box>
+										<Text fontSize="sm" fontWeight="bold" mb={2}>
+											Light needs:
+										</Text>
+										<HStack gap={2} flexWrap="wrap">
+											{([
+												{ value: 'low', label: 'Low' },
+												{ value: 'medium', label: 'Medium' },
+												{ value: 'bright-indirect', label: 'Bright' },
+												{ value: 'direct', label: 'Direct Sun' },
+											] as Array<{ value: LightLevel; label: string }>).map((light) => (
+												<Button
+													key={light.value}
+													size="sm"
+													variant={lightLevel === light.value ? 'solid' : 'outline'}
+													colorScheme={lightLevel === light.value ? 'green' : 'gray'}
+													onClick={() => setLightLevel(light.value)}
+													flex={1}
+													minW="80px"
+												>
+													{getLightLevelIcon(light.value)} {light.label}
+												</Button>
+											))}
+										</HStack>
+									</Box>
+
+									{/* Visual Characteristics (Optional) */}
+									<Box borderTop="1px solid" borderColor="gray.200" pt={4} mt={2}>
+										<Text fontSize="sm" fontWeight="bold" mb={3} color="gray.700">
+											🌿 What it looks like (optional)
+										</Text>
+										<VStack gap={3} align="stretch">
+											{/* Leaf Shape */}
+											<Box>
+												<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+													Leaf shape:
+												</Text>
+												<HStack gap={1.5} flexWrap="wrap">
+													{['heart', 'oval', 'round', 'long-narrow', 'spiky', 'hand-shaped'].map((shape) => (
+														<Button
+															key={shape}
+															size="xs"
+															variant={leafShape === shape ? 'solid' : 'outline'}
+															colorScheme={leafShape === shape ? 'purple' : 'gray'}
+															onClick={() => setLeafShape(shape)}
+														>
+															{shape}
+														</Button>
+													))}
+													<Input
+														placeholder="or custom..."
+														value={!['heart', 'oval', 'round', 'long-narrow', 'spiky', 'hand-shaped'].includes(leafShape) ? leafShape : ''}
+														onChange={(e) => setLeafShape(e.target.value)}
+														size="xs"
+														maxW="150px"
+														flex="0 1 auto"
+													/>
+												</HStack>
+											</Box>
+
+											{/* Leaf Size */}
+											<Box>
+												<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+													Leaf size:
+												</Text>
+												<HStack gap={1.5} flexWrap="wrap">
+													{['small', 'medium', 'large'].map((sz) => (
+														<Button
+															key={sz}
+															size="xs"
+															variant={leafSize === sz ? 'solid' : 'outline'}
+															colorScheme={leafSize === sz ? 'purple' : 'gray'}
+															onClick={() => setLeafSize(sz)}
+															minW="70px"
+														>
+															{sz}
+														</Button>
+													))}
+													<Input
+														placeholder="or custom..."
+														value={!['small', 'medium', 'large'].includes(leafSize) ? leafSize : ''}
+														onChange={(e) => setLeafSize(e.target.value)}
+														size="xs"
+														maxW="150px"
+														flex="0 1 auto"
+													/>
+												</HStack>
+											</Box>
+
+											{/* Growth Pattern */}
+											<Box>
+												<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+													Growth pattern:
+												</Text>
+												<HStack gap={1.5} flexWrap="wrap">
+													{['upright', 'trailing', 'climbing', 'bushy'].map((pattern) => (
+														<Button
+															key={pattern}
+															size="xs"
+															variant={growthPattern === pattern ? 'solid' : 'outline'}
+															colorScheme={growthPattern === pattern ? 'purple' : 'gray'}
+															onClick={() => setGrowthPattern(pattern)}
+															minW="70px"
+														>
+															{pattern}
+														</Button>
+													))}
+													<Input
+														placeholder="or custom..."
+														value={!['upright', 'trailing', 'climbing', 'bushy'].includes(growthPattern) ? growthPattern : ''}
+														onChange={(e) => setGrowthPattern(e.target.value)}
+														size="xs"
+														maxW="150px"
+														flex="0 1 auto"
+													/>
+												</HStack>
+											</Box>
+
+											{/* Special Features */}
+											<Box>
+												<Text fontSize="xs" fontWeight="medium" mb={1.5} color="gray.600">
+													Special features:
+												</Text>
+												<HStack gap={1.5} flexWrap="wrap" mb={2}>
+													{['variegated', 'succulent', 'waxy', 'fuzzy', 'fragrant', 'flowering'].map((feature) => {
+														const isSelected = specialFeatures.split(',').map(f => f.trim()).includes(feature)
+														return (
+															<Button
+																key={feature}
+																size="xs"
+																variant={isSelected ? 'solid' : 'outline'}
+																colorScheme={isSelected ? 'purple' : 'gray'}
+																onClick={() => {
+																	const features = specialFeatures.split(',').map(f => f.trim()).filter(f => f)
+																	if (isSelected) {
+																		setSpecialFeatures(features.filter(f => f !== feature).join(', '))
+																	} else {
+																		setSpecialFeatures([...features, feature].join(', '))
+																	}
+																}}
+															>
+																{feature}
+															</Button>
+														)
+													})}
+												</HStack>
+												<Input
+													placeholder="Add custom features (comma-separated)"
+													value={specialFeatures}
+													onChange={(e) => setSpecialFeatures(e.target.value)}
+													size="xs"
+												/>
+											</Box>
+										</VStack>
+									</Box>
+								</>
+							)}
 
 							{/* Care notes for custom plants */}
 							{plant.isCustomPlant && (
