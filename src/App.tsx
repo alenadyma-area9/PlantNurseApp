@@ -4,20 +4,37 @@ import { PlantList, type ViewMode } from './components/PlantList'
 import { AddPlantModal } from './components/AddPlantModal'
 import { SettingsModal } from './components/SettingsModal'
 import { RoomManagementModal } from './components/RoomManagementModal'
+import { WelcomeModal } from './components/WelcomeModal'
 import { useRoomStore } from './store/roomStore'
 import { toaster } from './main'
+
+const WELCOME_SHOWN_KEY = 'plantnurse-welcome-shown'
 
 function App() {
 	const initializeDefaultRoom = useRoomStore((state) => state.initializeDefaultRoom)
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 	const [isRoomManagementOpen, setIsRoomManagementOpen] = useState(false)
 	const [isAddPlantOpen, setIsAddPlantOpen] = useState(false)
+	const [isWelcomeOpen, setIsWelcomeOpen] = useState(false)
 	const [viewMode, setViewMode] = useState<ViewMode>('all')
 
 	// Initialize default room on first load
 	useEffect(() => {
 		initializeDefaultRoom()
 	}, [initializeDefaultRoom])
+
+	// Show welcome modal on first visit
+	useEffect(() => {
+		const hasSeenWelcome = localStorage.getItem(WELCOME_SHOWN_KEY)
+		if (!hasSeenWelcome) {
+			setIsWelcomeOpen(true)
+		}
+	}, [])
+
+	const handleWelcomeClose = () => {
+		localStorage.setItem(WELCOME_SHOWN_KEY, 'true')
+		setIsWelcomeOpen(false)
+	}
 
 	return (
 		<Box minH="100vh" bg="gray.50">
@@ -107,6 +124,12 @@ function App() {
 			<RoomManagementModal
 				isOpen={isRoomManagementOpen}
 				onClose={() => setIsRoomManagementOpen(false)}
+			/>
+
+			{/* Welcome Modal */}
+			<WelcomeModal
+				isOpen={isWelcomeOpen}
+				onClose={handleWelcomeClose}
 			/>
 
 			{/* Toast Notifications */}

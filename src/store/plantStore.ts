@@ -16,6 +16,7 @@ interface PlantStore {
 	addPlant: (plant: Omit<UserPlant, 'id' | 'dateAdded'>) => void
 	updatePlant: (id: string, updates: Partial<Omit<UserPlant, 'id'>>) => void
 	removePlant: (id: string) => void
+	deleteAllPlants: () => void
 	reorderPlants: (plantIds: string[]) => void
 
 	// Check-in actions
@@ -94,6 +95,14 @@ export const usePlantStore = create<PlantStore>()(
 					checkIns: state.checkIns.filter((checkIn) => checkIn.plantId !== id),
 					editHistory: state.editHistory.filter((edit) => edit.plantId !== id),
 				}))
+			},
+
+			deleteAllPlants: () => {
+				set({
+					plants: [],
+					checkIns: [],
+					editHistory: [],
+				})
 			},
 
 			reorderPlants: (plantIds) => {
